@@ -25,7 +25,7 @@ export function run(): number {
     const sandboxes = worktree_list(repoRoot);
     const items = sandboxes
         .map((w) => w.branch?.replace('agent/', ''))
-        .filter((slug): slug is string => !!slug);
+        .filter((slug): slug is string => Boolean(slug));
 
     if (items.length === 0) {
         console.log(yellow('No sandboxes found.'));

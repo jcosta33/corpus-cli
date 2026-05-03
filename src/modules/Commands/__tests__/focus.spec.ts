@@ -14,17 +14,19 @@ vi.mock('../../Workspace/useCases/index.ts', () => ({
 
 vi.mock('../../Terminal/useCases/index.ts', async (importOriginal) => {
     const actual = await importOriginal();
-    return { ...(actual as object), fzf_select: vi.fn() };
+    return { ...(actual as object), fzf_select: vi.fn(), yellow: vi.fn((t: string) => t), red: vi.fn((t: string) => t) };
 });
 
-import { worktree_list } from '../../Workspace/useCases/index.ts';
-import { get_repo_root } from '../../Workspace/useCases/index.ts';
+import { worktree_list, get_repo_root } from '../../Workspace/useCases/index.ts';
+import { fzf_select } from '../../Terminal/useCases/index.ts';
 
 describe('focus', () => {
     beforeEach(() => {
         vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
         vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.mocked(worktree_list).mockReturnValue([]);
+        delete process.env.EDITOR;
     });
 
     afterEach(() => {
@@ -37,7 +39,35 @@ describe('focus', () => {
         expect(run()).toBe(1);
     });
 
-    it('returns 1 when slug is missing', () => {
+    it('returns 1 when slug is missing and no sandboxes exist', () => {
+        process.argv = ['node', 'script'];
+        expect(run()).toBe(1);
+    });
+
+    it('opens editor via fzf selection', () => {
+        vi.mocked(worktree_list).mockReturnValue([
+            { path: '/tmp/repo/.agents/agent-foo', branch: 'agent/foo', head: 'abc' },
+        ]);
+        vi.mocked(fzf_select).mockReturnValue('foo');
+        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: '', stderr: '' } as ReturnType<typeof spawnSync>);
+        process.argv = ['node', 'script'];
+        expect(run()).toBe(0);
+    });
+
+    it('returns 1 when fzf selection is empty', () => {
+        vi.mocked(worktree_list).mockReturnValue([
+            { path: '/tmp/repo/.agents/agent-foo', branch: 'agent/foo', head: 'abc' },
+        ]);
+        vi.mocked(fzf_select).mockReturnValue(null);
+        process.argv = ['node', 'script'];
+        expect(run()).toBe(1);
+    });
+
+    it('returns 1 when fzf throws', () => {
+        vi.mocked(worktree_list).mockReturnValue([
+            { path: '/tmp/repo/.agents/agent-foo', branch: 'agent/foo', head: 'abc' },
+        ]);
+        vi.mocked(fzf_select).mockImplementation(() => { throw new Error('fzf not found'); });
         process.argv = ['node', 'script'];
         expect(run()).toBe(1);
     });
@@ -64,5 +94,15 @@ describe('focus', () => {
         vi.mocked(spawnSync).mockReturnValue({ status: 1, stdout: '', stderr: '' } as ReturnType<typeof spawnSync>);
         process.argv = ['node', 'script', 'foo'];
         expect(run()).toBe(1);
+    });
+
+    it('returns 1 when no editor is configured', () => {
+        vi.mocked(worktree_list).mockReturnValue([
+            { path: '/tmp/repo/.agents/agent-foo', branch: 'agent/foo', head: 'abc' },
+        ]);
+        process.env.EDITOR = '   ';
+        process.argv = ['node', 'script', 'foo'];
+        expect(() => run()).toThrow('Empty command string');
+        delete process.env.EDITOR;
     });
 });

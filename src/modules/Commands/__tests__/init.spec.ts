@@ -11,7 +11,13 @@ vi.mock('@clack/prompts', () => ({
     text: vi.fn(),
     select: vi.fn(),
     password: vi.fn(),
-    group: vi.fn(),
+    group: vi.fn(async (prompts: Record<string, () => Promise<unknown>>) => {
+        const results: Record<string, unknown> = {};
+        for (const [key, fn] of Object.entries(prompts)) {
+            results[key] = await fn();
+        }
+        return results;
+    }),
 }));
 
 vi.mock('fs', async (importOriginal) => {
@@ -52,8 +58,15 @@ describe('cmd_init', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
-        (clack.group as ReturnType<typeof vi.fn>).mockResolvedValue(defaultGroupResults);
+        vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+        (clack.password as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+        (clack.select as ReturnType<typeof vi.fn>)
+            .mockResolvedValueOnce('claude')
+            .mockResolvedValueOnce('cursor');
+        (clack.text as ReturnType<typeof vi.fn>)
+            .mockResolvedValueOnce('main')
+            .mockResolvedValueOnce('npm test')
+            .mockResolvedValueOnce('tsc --noEmit');
     });
 
     afterEach(() => {
@@ -145,12 +158,9 @@ describe('cmd_init', () => {
     it('saves API keys to .env if provided', async () => {
         (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
         (spawnSync as ReturnType<typeof vi.fn>).mockReturnValue({ status: 0, stdout: 'true' });
-        
-        (clack.group as ReturnType<typeof vi.fn>).mockResolvedValue({
-            ...defaultGroupResults,
-            anthropicKey: 'sk-ant-123',
-            openAIKey: 'sk-proj-456'
-        });
+        (clack.password as ReturnType<typeof vi.fn>)
+            .mockResolvedValueOnce('sk-ant-123')
+            .mockResolvedValueOnce('sk-proj-456');
 
         await cmd_init('/repo', []);
 
@@ -159,5 +169,58 @@ describe('cmd_init', () => {
         expect(envCall).toBeTruthy();
         expect(envCall[1]).toContain('ANTHROPIC_API_KEY=sk-ant-123');
         expect(envCall[1]).toContain('OPENAI_API_KEY=sk-proj-456');
+    });
+
+    it('re-initializes when user confirms overwrite', async () => {
+        (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+        (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue('');
+        (clack.confirm as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+        (clack.isCancel as unknown as ReturnType<typeof vi.fn>).mockReturnValue(false);
+        (spawnSync as ReturnType<typeof vi.fn>).mockReturnValue({ status: 0, stdout: 'true' });
+
+        const result = await cmd_init('/repo', []);
+        expect(result).toBe(0);
+        expect(writeFileSync).toHaveBeenCalled();
+    });
+
+    it('reads existing API keys from .env', async () => {
+        (existsSync as ReturnType<typeof vi.fn>)
+            .mockReturnValueOnce(false) // agentsDir
+            .mockReturnValueOnce(true)  // envPath
+            .mockReturnValueOnce(false) // agentsDir again
+            .mockReturnValueOnce(false) // tasksDir etc.
+            .mockReturnValueOnce(false);
+        (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue('ANTHROPIC_API_KEY=existing\nOPENAI_API_KEY=existing');
+        (spawnSync as ReturnType<typeof vi.fn>).mockReturnValue({ status: 0, stdout: 'true' });
+
+        await cmd_init('/repo', []);
+        expect(readFileSync).toHaveBeenCalledWith(expect.stringContaining('.env'), 'utf8');
+    });
+
+    it('skips scaffold when scaffold dir does not exist', async () => {
+        (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+        (spawnSync as ReturnType<typeof vi.fn>).mockReturnValue({ status: 0, stdout: 'true' });
+        await cmd_init('/repo', []);
+        expect(cpSync).not.toHaveBeenCalled();
+    });
+
+    it('handles git rerere already enabled', async () => {
+        (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+        (spawnSync as ReturnType<typeof vi.fn>)
+            .mockReturnValueOnce({ status: 0, stdout: 'main' })
+            .mockReturnValueOnce({ status: 0, stdout: 'true' });
+        await cmd_init('/repo', []);
+        const calls = (spawnSync as ReturnType<typeof vi.fn>).mock.calls;
+        expect(calls.length).toBe(2);
+    });
+
+    it('handles git rerere enable failure', async () => {
+        (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+        (spawnSync as ReturnType<typeof vi.fn>)
+            .mockReturnValueOnce({ status: 0, stdout: 'main' })
+            .mockReturnValueOnce({ status: 0, stdout: '' })
+            .mockReturnValueOnce({ status: 1, stderr: 'error' });
+        await cmd_init('/repo', []);
+        expect(spawnSync).toHaveBeenCalledTimes(3);
     });
 });

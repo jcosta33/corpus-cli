@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-interface AnthropicResponse {
-    content: Array<{ text: string }>;
+type AnthropicResponse = {
+    content: { text: string }[];
 }
 function isAnthropicResponse(data: unknown): data is AnthropicResponse {
     if (!data || typeof data !== 'object') return false;
@@ -12,8 +12,8 @@ function isAnthropicResponse(data: unknown): data is AnthropicResponse {
     return typeof first.text === 'string';
 }
 
-interface OpenAIResponse {
-    choices: Array<{ message: { content: string } }>;
+type OpenAIResponse = {
+    choices: { message: { content: string } }[];
 }
 function isOpenAIResponse(data: unknown): data is OpenAIResponse {
     if (!data || typeof data !== 'object') return false;
@@ -40,8 +40,8 @@ export async function summarize_insight(repoRoot: string, prompt: string): Promi
         return null;
     }
     
-    const anthropicMatch = envContent.match(/^ANTHROPIC_API_KEY=(.*)$/m);
-    const openaiMatch = envContent.match(/^OPENAI_API_KEY=(.*)$/m);
+    const anthropicMatch = /^ANTHROPIC_API_KEY=(.*)$/m.exec(envContent);
+    const openaiMatch = /^OPENAI_API_KEY=(.*)$/m.exec(envContent);
     
     if (anthropicMatch && anthropicMatch[1]) {
         const key = anthropicMatch[1].trim();

@@ -59,7 +59,7 @@ vi.mock('child_process', async (importOriginal) => {
 });
 
 import { parse_args } from '../../Terminal/useCases/index.ts';
-import { get_repo_root, branch_exists, worktree_create } from '../../Workspace/useCases/index.ts';
+import { get_repo_root } from '../../Workspace/useCases/index.ts';
 import { existsSync, readFileSync } from 'fs';
 import { validate_dag } from '../../TaskManagement/useCases/index.ts';
 

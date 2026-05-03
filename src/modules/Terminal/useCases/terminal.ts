@@ -39,7 +39,7 @@ export function build_banner(info: Record<string, string>): string {
         `${cyan('│')} ${dim('Slug:')}      ${info.slug}`,
         `${cyan('│')} ${dim('Branch:')}    ${info.branch}`,
         `${cyan('│')} ${dim('Task file:')} ${info.taskFile}`,
-        `${cyan('└' + '─'.repeat(50))}\n`,
+        `${cyan(`└${  '─'.repeat(50)}`)}\n`,
         `${blue('i')} Launching ${bold(info.agent)}...\n`,
     ].join('\n');
 }
@@ -175,7 +175,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
         [agentCmd, ...agentArgs].map(posix_quote).join(' '),
     ];
     const scriptPath = join(tmpdir(), `agents-launch-${String(process.pid)}-${String(Date.now())}.sh`);
-    writeFileSync(scriptPath, lines.join('\n') + '\n', { mode: 0o755 });
+    writeFileSync(scriptPath, `${lines.join('\n')  }\n`, { mode: 0o755 });
     return scriptPath;
 }
 

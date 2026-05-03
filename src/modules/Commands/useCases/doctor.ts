@@ -114,7 +114,7 @@ export async function run(): Promise<number> {
         const summaryPrompt = `Summarize this Swarm CLI diagnostic output in one short, punchy sentence. Focus on whether the system is fully operational or if something is broken: ${JSON.stringify(results)}`;
         const insight = await summarize_insight(repoRoot, summaryPrompt);
         if (insight) {
-            console.log(cyan(`✨ AI Insight: `) + dim(insight) + '\n');
+            console.log(`${cyan(`✨ AI Insight: `) + dim(insight)  }\n`);
         }
     }
 

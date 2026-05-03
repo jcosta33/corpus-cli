@@ -120,14 +120,14 @@ function update_metadata_in_file(content: string, data: Record<string, string>) 
     const startIdx = content.indexOf(METADATA_START);
     if (startIdx === -1) {
         // No metadata block found — append one
-        return content.trimEnd() + '\n\n' + newBlock + '\n';
+        return `${content.trimEnd()  }\n\n${  newBlock  }\n`;
     }
     // Find the end of the metadata block (next ## heading or EOF)
     const afterStart = content.indexOf('\n## ', startIdx + 1);
     if (afterStart === -1) {
-        return content.slice(0, startIdx) + newBlock + '\n';
+        return `${content.slice(0, startIdx) + newBlock  }\n`;
     }
-    return content.slice(0, startIdx) + newBlock + '\n' + content.slice(afterStart);
+    return `${content.slice(0, startIdx) + newBlock  }\n${  content.slice(afterStart)}`;
 }
 
 /**

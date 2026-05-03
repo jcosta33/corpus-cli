@@ -26,7 +26,7 @@ function spawn_command(cmd: string, args: string[], cwd: string): number {
 function get_agent_slugs(repoRoot: string): string[] {
     return worktree_list(repoRoot)
         .map((w) => w.branch?.replace('agent/', ''))
-        .filter((s): s is string => !!s && s !== 'main');
+        .filter((s): s is string => Boolean(s) && s !== 'main');
 }
 
 function format_sandbox_list(repoRoot: string): string {

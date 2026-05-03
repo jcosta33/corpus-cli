@@ -1,17 +1,10 @@
-export * from '../services/registry.ts';
-
-import { register_capability } from '../services/registry.ts';
-import { adapter_capabilities } from '../../Adapters/useCases/index.ts';
-
-for (const cap of adapter_capabilities) {
-    register_capability(cap);
-}
-
-// Commands are dispatched by file path (see src/index.ts), so the registry just
-// publishes their names/descriptions for `swarm capabilities` and the dashboard.
-// Do NOT `export *` from useCase files here — every useCase exports a `run`
-// function and the resulting collisions break typecheck.
-const COMMAND_CATALOG = [
+// Commands module barrel.
+//
+// Commands is the orchestration leaf — its useCases are dispatched by file path
+// from src/index.ts (see execute_command), not consumed by other modules. The
+// only thing the entry point needs from this module is the catalog of command
+// names + descriptions used for fuzzy-match suggestions and registry seeding.
+export const COMMAND_CATALOG = [
     { name: 'new', description: 'Create a new isolated sandbox task' },
     { name: 'open', description: 'Reopen an existing sandbox' },
     { name: 'list', description: 'List active sandboxes' },
@@ -71,13 +64,3 @@ const COMMAND_CATALOG = [
     { name: 'triage', description: 'Convert a raw bug report into a spec' },
     { name: 'visual', description: 'Screenshot-based visual regression' },
 ] as const;
-
-for (const cmd of COMMAND_CATALOG) {
-    register_capability({
-        name: cmd.name,
-        version: '1.0.0',
-        type: 'command',
-        description: cmd.description,
-        entry_point: `./useCases/${cmd.name}.ts`,
-    });
-}

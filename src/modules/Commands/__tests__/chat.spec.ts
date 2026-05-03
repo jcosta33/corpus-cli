@@ -25,7 +25,7 @@ vi.mock('../../Terminal/useCases/index.ts', async (importOriginal) => {
 describe('chat', () => {
     beforeEach(() => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
-        vi.spyOn(console, 'error').mockImplementation((...args) => {
+        vi.spyOn(console, 'error').mockImplementation((..._args) => {
             // console.warn('TEST ERROR LOG:', ...args);
         });
         vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');

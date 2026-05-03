@@ -168,7 +168,7 @@ export async function cmd_init(repoRoot: string, _argv: string[]): Promise<numbe
     if (results.openAIKey) envContent += `\nOPENAI_API_KEY=${results.openAIKey}`;
     
     if (results.anthropicKey || results.openAIKey) {
-        writeFileSync(envPath, envContent.trim() + '\n', 'utf8');
+        writeFileSync(envPath, `${envContent.trim()  }\n`, 'utf8');
         log.success('API keys saved to .env file.');
     }
 

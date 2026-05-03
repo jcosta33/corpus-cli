@@ -9,7 +9,7 @@ export function format_markdown(text: string): string {
         // Remove trailing empty line if it exists
         if (lines[lines.length - 1] === '') lines.pop();
         
-        return color.dim('╭─\n') + lines.map((l: string) => `${color.dim('│')} ${color.yellow(l)}`).join('\n') + '\n' + color.dim('╰─');
+        return `${color.dim('╭─\n') + lines.map((l: string) => `${color.dim('│')} ${color.yellow(l)}`).join('\n')  }\n${  color.dim('╰─')}`;
     });
 
     // Headings

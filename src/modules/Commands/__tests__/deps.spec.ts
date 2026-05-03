@@ -7,7 +7,7 @@ vi.mock('child_process', async (importOriginal) => {
     return { ...(actual as object), spawnSync: vi.fn() };
 });
 
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync } from 'fs';
 
 vi.mock('fs', async (importOriginal) => {
     const actual = await importOriginal<typeof import('fs')>();

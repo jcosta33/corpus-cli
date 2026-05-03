@@ -76,5 +76,5 @@ export function box(title: string, lines: string[]) {
     const content = lines.join('\n');
     logger.raw(`\n${cyan('┌')} ${bold(cyan(title))} ${cyan('─'.repeat(Math.max(0, 50 - title.length - 3)))}`);
     logger.raw(content);
-    logger.raw(`${cyan('└' + '─'.repeat(50))}\n`);
+    logger.raw(`${cyan(`└${  '─'.repeat(50)}`)}\n`);
 }
