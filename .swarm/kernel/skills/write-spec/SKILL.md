@@ -17,7 +17,7 @@ description: >-
 
 How to perform the `author` pass — first of the nine passes (`author → lint → improve → lower → decompose → implement → verify → review → promote`) and the only one that *writes* a `*.swarm.md` source spec. `author` sits **outside** the seven analysis phases: the entry pass before `PARSE`, the boundary where unstructured intent (chat, a research/audit/PRD/RFC parent) becomes the first compiler-visible artifact. Analysis begins at the next pass, which reads this pass's output.
 
-This guide is SOFT control: procedure, not meaning. The load-bearing facts — what each block type, modal, and proof type *means*, the required section order — are fixed in the SOL language reference and the spec artifact contract, applied here, never redefined. A correctly authored spec is understandable without this guide.
+This guide is SOFT control: procedure, not meaning. The load-bearing facts — what each block type, modal, and proof type *means*, the required section order — are fixed by the SOL grammar (`reference/sol.md`, shipped) and the spec artifact contract, applied here, never redefined; load `reference/sol.md` for the exact block shapes, ids, modals, and section list while authoring. A correctly authored spec is understandable without this guide.
 
 Stance: **Architect**. Declare what MUST hold, not how it will be built. The implementer who later reads the spec picks the mechanism; make the obligation unambiguous, testable, and bounded.
 

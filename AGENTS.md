@@ -30,17 +30,19 @@
 - Full architecture + conventions + safety detail: **`.swarm/overlays/repo-conventions.md`**. Human coding conventions: `docs/07-conventions.md`.
 
 ## Pointers
-- Skills (self-contained pass guides, per-kind implement & author guides, persona-* stances, fragments): `.swarm/kernel/skills/`; this repo's own skills: `.swarm/skills/`
+- Skills (a pass guide for each of the 9 passes, per-kind implement & author guides, persona-* stances, fragments): `.swarm/kernel/skills/`; this repo's own skills: `.swarm/skills/`. Each carries its pass *procedure* inline.
+- Operative reference cards (the shared closed-set rules — SOL grammar, proofs/verdicts/adequacy, the IR/edges): `.swarm/kernel/reference/` (`sol.md`, `proofs.md`, `ir.md`). Load the card for the pass you're running.
 - Memory recall map (says *when to load* each entry; never dumped here): `.swarm/memory/INDEX.md`
 - Project rule bundles (overlays): `.swarm/overlays/` (project-owned; survives kernel upgrades)
-- Full SOL / APS / passes reference (not installed — read in the `swarm` repo for depth): `<swarm-repo>/docs/`
+- Full SOL / APS / passes manuals (not installed — read in the `swarm` repo for the *why*): `<swarm-repo>/docs/`
 
 ## Compatibility
 Two skill sources are bridged into `.claude/skills/` (so Claude Code discovers them) as **per-skill
 symlinks**, not a single dir symlink: the framework skills at `.swarm/kernel/skills/` and this repo's own
-skills at `.swarm/skills/` (project-owned, survives kernel upgrades). The skills are **self-contained** —
-each carries the rules it needs inline and only *names* the deep reference, so `.swarm/kernel/` ships just
-`skills/` + `templates/`; the full SOL/APS/passes manuals are not installed (read them in the `swarm` repo).
+skills at `.swarm/skills/` (project-owned, survives kernel upgrades). Each skill carries its pass
+*procedure* inline; the shared closed-set rules ship as the compact `reference/` cards. So `.swarm/kernel/`
+holds `skills/` + `reference/` + `templates/`; the full SOL/APS/passes manuals (the *why*) are not
+installed — read them in the `swarm` repo.
 
 ## Commands
 <!-- Each `cmd*` slot is the adapter a `VERIFY BY <type>:<adapter>:<artifact>` clause resolves through

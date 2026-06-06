@@ -10,7 +10,7 @@ description: The `decompose` pass: partition a lowered IR obligation graph into 
 
 How to perform the `decompose` pass — the fifth of nine passes (`author → lint → improve → lower → decompose → implement → verify → review → promote`) and the second `LOWER`-phase pass. Where `lower` builds the IR obligation graph, `decompose` partitions it into schedulable work packets, emits the plan, and (when the run fans out) the coordination record that tracks it.
 
-This guide is SOFT control: procedure, not meaning. The load-bearing facts — what `merge_safe`, overlap/subset, and a verdict *mean*, and the authority order (an approved spec/ADR outranks a task, which outranks chat) — are fixed at the cited references and applied here, never redefined. The structures it operates over:
+This guide is SOFT control: procedure, not meaning. The load-bearing facts — what `merge_safe`, overlap/subset, and a verdict *mean*, and the authority order (an approved spec/ADR outranks a task, which outranks chat) — are fixed at the cited references and applied here, never redefined. The IR it partitions, the 7 edge types, the plan/packet envelope, and the safe-parallelism predicate are in `reference/ir.md` (shipped) — load it for the exact shapes. The structures it operates over:
 
 - The decompose pass contract and orchestration: the `decompose` pass.
 - The plan envelope and work-packet record: the `decompose` pass.

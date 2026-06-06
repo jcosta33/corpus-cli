@@ -21,8 +21,8 @@ description: >
 >
 > **It owns no semantics.** The nine proof types, the seven-value verdict model, the
 > proof-strength order, the merge gate, oracle adequacy, and "what is NOT a proof" are fixed by the
-> language and verify/review references (the `verify` pass, the `review` pass)
-> and the typed IR (the `lower` pass). Every term below
+> proofs/verdicts reference card (`reference/proofs.md`, shipped — load it for the exact rules) and the
+> upstream verify/review manuals (the `verify` pass, the `review` pass). Every term below
 > is *cited*, not redefined; where this fragment and the reference disagree, the reference governs.
 > This is the *procedure* for a discipline those layers own — SOFT control: a markdown contract that
 > makes a skipped proof *conspicuous*, not a runtime that enforces closure (Swarm ships no runtime).
