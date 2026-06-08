@@ -3,6 +3,7 @@ import type { SwarmIr } from '../models/ir.ts';
 import type { ParseFailure } from '../models/parse-failure.ts';
 import { splitFrontmatter, parseMeta } from '../services/frontmatter.ts';
 import { scanBlocks } from '../services/scan-blocks.ts';
+import { buildNodesAndEdges } from '../services/build-ir.ts';
 import { sha256 } from '../services/digest.ts';
 
 const TOOL_VERSION = 'swarm-core-parser/0.1.0';
@@ -28,15 +29,16 @@ export const parseSpec = (input: ParseSpecInput): Result<SwarmIr, ParseFailure> 
     if (isErr(meta)) {
         return meta;
     }
-    const nodes = scanBlocks({
+    const blocks = scanBlocks({
         lines: split.value.lines,
         first_body_index: split.value.frontmatter_end_line,
         file: input.path,
     });
+    const built = buildNodesAndEdges(blocks);
     return ok({
         meta: meta.value,
-        nodes,
-        edges: [],
+        nodes: built.nodes,
+        edges: built.edges,
         diagnostics: [],
         provenance: {
             hash: sha256(input.source),

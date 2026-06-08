@@ -56,3 +56,34 @@ EVIDENCE t.spec.ts#y
 `;
 
 export const FIXTURE_PATH = 'fixture-all-blocks.swarm.md';
+
+// A clause-rich spec exercising lowering (AC-002) and edges (AC-003): VERIFY BY / WRITES / READS / RISK on
+// a node, plus DEPENDS ON and AFFECTS relationships.
+export const RICH_OBLIGATION_SPEC = `---
+type: spec
+id: fixture-rich
+swarm_language: SOL/0.1
+spec_version: 0.1.0
+---
+
+# Spec: fixture — clauses and relationships
+
+## Obligations
+
+REQ AC-001:
+WHEN a request arrives
+THE service MUST persist it
+VERIFY BY test:cmdTest:t.spec.ts#persist
+DEPENDS ON IF-001
+READS config/app.json
+WRITES src/db/store.ts, src/db/index.ts
+RISK high
+
+REQ AC-002:
+WHEN persistence fails
+THE service MUST retry with backoff
+VERIFY BY test:cmdTest:t.spec.ts#retry
+AFFECTS AC-001
+`;
+
+export const RICH_PATH = 'fixture-rich.swarm.md';

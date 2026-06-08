@@ -27,11 +27,21 @@ export type SourceSpan = Readonly<{
     content_hash: string;
 }>;
 
-// One IR node per SOL block (AC-001), source-mapped (AC-004).
+// The lowered surface-keyword clauses on a block (AC-002), snake_case to match the IR schema.
+// Relationships (`DEPENDS ON` / `AFFECTS`) are deliberately NOT here — they live only in `edges[]` (I-001).
+export type ObligationClauses = Readonly<{
+    verify_by: readonly string[];
+    writes: readonly string[];
+    reads: readonly string[];
+    risk: string | null;
+}>;
+
+// One IR node per SOL block (AC-001), source-mapped (AC-004), carrying its lowered clauses (AC-002).
 export type IrNode = Readonly<{
     id: string;
     kind: BlockKind;
     source: SourceSpan;
+    clauses: ObligationClauses;
 }>;
 
 // A relationship between two nodes. The sole home of relationships (later increment, AC-003 / I-001).

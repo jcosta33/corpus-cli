@@ -9,6 +9,7 @@ export {
     type SwarmIr,
     type IrNode,
     type IrEdge,
+    type ObligationClauses,
     type IrMeta,
     type IrProvenance,
     type Diagnostic,

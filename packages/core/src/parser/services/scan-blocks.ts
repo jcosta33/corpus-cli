@@ -1,5 +1,5 @@
 import { sha256 } from './digest.ts';
-import { BLOCK_KINDS, type BlockKind, type IrNode } from '../models/ir.ts';
+import { BLOCK_KINDS, type BlockKind, type SourceSpan } from '../models/ir.ts';
 
 // A SOL block header: one of the 7 keywords, an id token, an optional `[annotation]`, then a colon.
 // Requiring the trailing colon keeps prose lines ("INTERFACE blocks each MUST…") from matching.
@@ -7,6 +7,14 @@ const HEADER_PATTERN = /^(REQ|CONSTRAINT|INVARIANT|INTERFACE|QUESTION|TRACE|VERD
 const SECTION_PATTERN = /^##\s/;
 
 const isBlockKind = (token: string): token is BlockKind => (BLOCK_KINDS as readonly string[]).includes(token);
+
+// A recognized block before clause-lowering: its identity + source span + the body lines under its header.
+export type RawBlock = Readonly<{
+    id: string;
+    kind: BlockKind;
+    source: SourceSpan;
+    body_lines: readonly string[];
+}>;
 
 export type ScanBlocksInput = Readonly<{
     lines: readonly string[];
@@ -25,10 +33,10 @@ const findBoundaries = (lines: readonly string[], firstBodyIndex: number): numbe
     return boundaries;
 };
 
-// Emit one source-mapped node per recognized block header (AC-001, AC-004). Pure; reads `lines`, never writes.
-export const scanBlocks = (input: ScanBlocksInput): IrNode[] => {
+// One raw block per recognized block header (AC-001, AC-004). Pure; reads `lines`, never writes.
+export const scanBlocks = (input: ScanBlocksInput): RawBlock[] => {
     const boundaries = findBoundaries(input.lines, input.first_body_index);
-    const nodes: IrNode[] = [];
+    const blocks: RawBlock[] = [];
     for (let position = 0; position < boundaries.length; position += 1) {
         const headerIndex = boundaries[position];
         const headerMatch = HEADER_PATTERN.exec(input.lines[headerIndex]);
@@ -45,7 +53,7 @@ export const scanBlocks = (input: ScanBlocksInput): IrNode[] => {
             endIndex -= 1;
         }
         const spanText = input.lines.slice(headerIndex, endIndex + 1).join('\n');
-        nodes.push({
+        blocks.push({
             id: headerMatch[2],
             kind: keyword,
             source: {
@@ -54,7 +62,8 @@ export const scanBlocks = (input: ScanBlocksInput): IrNode[] => {
                 line_end: endIndex + 1,
                 content_hash: sha256(spanText),
             },
+            body_lines: input.lines.slice(headerIndex + 1, endIndex + 1),
         });
     }
-    return nodes;
+    return blocks;
 };
