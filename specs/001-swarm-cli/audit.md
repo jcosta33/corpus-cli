@@ -17,7 +17,7 @@ title: swarm-cli toolchain spec-suite — alignment with the current Swarm frame
 
 ## Method
 
-Read specs `001-swarm-cli` and `002-swarm-core-parser` in full against the re-synced kit (`.agents/reference`,
+Read specs `001-swarm-cli` and `002-sol-parser` in full against the re-synced kit (`.agents/reference`,
 `.claude/skills`, `AGENTS.md`) and the governing ADRs. Cross-checked every `.swarm/`-path and "kernel"/"overlay"
 claim against ADR-0049 (minimal install, **no mount, no imposed workspace**), ADR-0050/0051 (spec-repo
 discipline; specs top-level; `.agents/` = tooling), and ADR-0052 (artifact homes). Inspected the live `init`
@@ -77,12 +77,16 @@ spec (checked) — this is the only vocabulary residue.
 **Respec now (this phase):** realign spec 001's workspace/init/version obligations to the in-place model;
 fix spec 002's vocabulary.
 
+> **Update ([ADR-0001](../../decisions/0001-single-tool-no-monorepo.md)):** the packaging question is settled —
+> **one tool, code in `/src`, no monorepo**. The backlog items below are `src/modules/` (governed by
+> dependency-cruiser), not `packages/`/`swarm-core-*`. The parser is migrated to `src/modules/Sol`.
+
 **New specs to author (backlog):**
-- **`swarm lint`** (the SOL linter — the 5 lint layers S/P/M/V/O over spec 002's IR). *The headline QOL/lint
-  feature; authored this phase as `specs/004-swarm-lint/`.*
-- **`swarm-core-verify`** — the merge gate + oracle adequacy (ADR-0055: empty-set floor, adequacy-BLOCKING for
-  `RISK high|critical`), backing `check`/`review`.
-- **`swarm-core-worktree`** — the lease manager + ledger (seeded by `specs/003-swarm-core-worktree/research.md`).
+- **`swarm lint`** (the SOL linter — the 5 lint layers S/P/M/V/O over the `sol-parser` IR). *The headline
+  QOL/lint feature; authored as `specs/004-sol-lint/`; the linter is a `src/modules/Sol` use-case.*
+- **verify / merge gate** — oracle adequacy + the gate (ADR-0055: empty-set floor, adequacy-BLOCKING for
+  `RISK high|critical`), backing `check`/`review`. A `src/modules/Sol` (or sibling core module) use-case.
+- **worktree leasing + ledger** — a `src/modules/Workspace`/`AgentState` concern (seeded by `specs/003-swarm-core-worktree/research.md`).
 - **`swarm init` redesign** — fold the in-place adoption layout into a realigned 001 or a dedicated init spec.
 - **QOL:** `doctor` (environment + adoption-layout health), `drift`/`status` (the staleness + ledger projections).
 

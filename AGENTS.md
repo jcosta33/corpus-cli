@@ -9,7 +9,7 @@
 
 ## Swarm startup
 1. Read the current task file first.
-2. Specs live in per-feature folders: `specs/<feature>/spec.swarm.md` (this repo's toolchain specs — e.g. `specs/001-swarm-cli/`, `specs/002-swarm-core-parser/`), with any feature-scoped supporting docs beside the spec; ADRs go in `decisions/` (numbered). `.agents/` holds Swarm tooling — skills (in `.claude/skills/`, where Claude Code scans), `reference/` (rule cards), `templates/`, `memory/` (recall + findings); `.agents/tasks/` holds task frames (gitignored execution scratch, since this repo also implements). No `.swarm/` mount, no version file.
+2. Specs live in per-feature folders: `specs/<feature>/spec.swarm.md` (this repo's toolchain specs — e.g. `specs/001-swarm-cli/`, `specs/002-sol-parser/`), with any feature-scoped supporting docs beside the spec; ADRs go in `decisions/` (numbered). `.agents/` holds Swarm tooling — skills (in `.claude/skills/`, where Claude Code scans), `reference/` (rule cards), `templates/`, `memory/` (recall + findings); `.agents/tasks/` holds task frames (gitignored execution scratch, since this repo also implements). No `.swarm/` mount, no version file.
 3. Treat `.swarm.md` blocks as authoritative over prose summaries.
 4. Use assigned obligation IDs as scope.
 5. Decide isolation before editing (see the `implement` pass): a code task with a source spec/audit runs in a `worktree+branch` named for the spec, off the base — never on it; a bare ad-hoc edit stays `in-place`.
