@@ -34,12 +34,19 @@ clauses (`WHEN … THE <actor> MUST <response> VERIFY BY <type>:<adapter>:<artif
    **not** proof; "looks done", a structurally-valid result, and a stale pre-edit run are non-proofs. For an
    obligation marked `RISK high|critical`, a single happy-path test is inadequate — exercise the surfaces that
    can break it (edge/error/concurrency), and say what you covered.
-4. **The PR is the trace and the verdict.** In the PR, **name the obligation ids** it satisfies and attach the
+4. **Adversarially self-review before you call it done (ADR-0056).** Turn the skeptic stance on your *own*
+   work, refute-by-default: re-run each proof from a clean state; hunt the path you did not exercise
+   (edge/error/concurrency, especially `RISK high|critical`); check the diff for scope creep and any
+   weakened constraint/invariant; ask where a green result could still be wrong — then fix what it surfaces
+   and record it (the `## Self-review` block, or the PR description). This is **necessary but not sufficient**:
+   it yields fixes + a critique, **never a verdict** — a `PASS` you issue on your own change is inadmissible
+   and does not replace the independent review (`implementer ≠ reviewer`).
+5. **The PR is the trace and the verdict.** In the PR, **name the obligation ids** it satisfies and attach the
    proof (the run output / CI link). The PR + CI + review *are* the trace and verdict — you do **not** write a
    `trace.md`/`review.md` into the code repo (that's opt-in, audit-only).
-5. **Keep the repo pristine.** Any working files an agent generates (task frames, scratch) are gitignored or
+6. **Keep the repo pristine.** Any working files an agent generates (task frames, scratch) are gitignored or
    not written at all. Swarm leaves no litter in a code repo.
-6. **Push durable outcomes back to the spec repo.** A reusable learning, a decision, or discovered **drift**
+7. **Push durable outcomes back to the spec repo.** A reusable learning, a decision, or discovered **drift**
    (the code can't satisfy the obligation as written, or the spec is now stale) goes to the **spec repo** as
    its own PR, linked to this code PR — never as a file in the code repo, and never by editing intent locally.
 
@@ -54,6 +61,7 @@ unproven green is not done.
 - ❌ Writing `trace.md`/`review.md`/task files into the code repo → the PR is the trace; keep the repo clean.
 - ❌ Editing the spec from the code repo → intent lives in the spec; propose the change back as a linked PR.
 - ❌ Treating a `RISK high|critical` obligation as proven by one happy-path test.
+- ❌ Calling it done without adversarially self-reviewing your own work first (ADR-0056) → refute it before handoff; a self-issued PASS is not the gate.
 
 ## Related
 - The proof discipline in depth — `empirical-proof` (if installed): proof types, what is NOT a proof, oracle

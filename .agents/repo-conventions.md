@@ -1,6 +1,6 @@
-# Overlay: swarm-cli repo conventions
+# swarm-cli repo conventions
 
-Project-owned rules for working in this repository (survives kernel upgrades). Load this when
+Project-owned rules for working in this repository (persist across Swarm kit upgrades). Load this when
 implementing or refactoring TypeScript here. These are the **de-contaminated** rules carried over from
 the pre-Swarm `AGENTS.md` — the earlier file had React/TanStack/Rust-Tauri-audio content copied from
 another project; none of that applies (this repo is a TypeScript CLI, no UI, no Rust).

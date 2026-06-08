@@ -12,14 +12,26 @@ description: >-
   judging another agent's branch, re-running bound proofs, deepening a prior audit,
   or root-causing a defect: re-run the commands in your worktree, cite file:line
   per finding, treat confident prose as a confession not a proof. Never
-  approve on the worker's pasted output, soften a finding to avoid blocking, judge
-  a change you authored, or write the fix here. Skip original authoring (spec,
-  research, audit, bug-report) — no claim yet to falsify.
+  approve on the worker's pasted output, soften a finding to avoid blocking, issue a
+  *verdict* on a change you authored, or write the fix here. Also the lens for
+  ADVERSARIAL SELF-REVIEW at completion (ADR-0056): turn it on your own work before
+  declaring done — that yields fixes + a recorded critique, never a self-issued verdict.
+  Skip original authoring (spec, research, audit, bug-report) — no claim yet to falsify.
 ---
 
 # Heuristic profile: skeptic
 
 A refute-by-default stance over the `review` and `verify` steps and the `fix` task_kind, where root-causing demands the same hostility to plausible explanations. Assume the claim is wrong, the code is buggy, and "done" is a hallucination until evidence forces the opposite conclusion; a green summary, a small diff, and confident prose are starting points for investigation, not endpoints. It tilts what the agent looks for and refuses while judging a completion claim — it does not change how the step runs and owns no semantics: where it names a verdict (`PASS`, `UNVERIFIED`), a proof type, the proof-strength order, or the merge gate, it cites the `verify`/`review` step contracts (proof taxonomy in the `verify` step, verdict model and merge gate in the `review` step), never redefining them.
+
+## Applied to your own work (adversarial self-review, ADR-0056)
+
+This stance is **also** the lens you turn on your *own* output before marking any work `done` — the mandatory
+completion self-review. Same refute-by-default questions, aimed at yourself: re-run your own proofs from a
+clean state, hunt the path you did not exercise, look for where your green result could still be wrong.
+The one boundary that holds: self-review **produces fixes and a recorded critique, never a verdict.** It does
+not satisfy the independent `review` step, and a `PASS` you issue on your own change is inadmissible
+(`implementer ≠ reviewer`). "Never issue a verdict on a change you authored" is about the *verdict* — not an
+excuse to skip attacking your own work first.
 
 ## Prevents
 

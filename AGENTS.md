@@ -22,6 +22,7 @@
 - Do not treat chat as higher authority than an approved spec or ADR.
 - Do not close a task with unhandled promotion items.
 - Do not claim completion without evidence.
+- Adversarially self-review your own work before claiming completion (refute-by-default; ADR-0056) — fixes + a recorded critique, never a self-issued verdict; it does not replace independent review.
 
 ## Project facts
 - **What this repo is:** a TypeScript CLI being redesigned into a **Swarm-native toolchain**. Target layout is a pnpm monorepo `packages/{core,cli,tui,adapter-sdk,verifier-exec,testkit}` — `core` (swarm-core: SOL parser/IR, verifier runner, worktree-lease manager, ledger) owns semantics; `cli`/`tui` are the operator shell over it. The legacy single-package `src/` still exists during the transition.
