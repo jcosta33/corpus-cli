@@ -14,9 +14,10 @@
   (a claim without output counts as unverified); fill its `## Run summary`;
   re-read your own diff as a skeptic before handoff. Guide:
   `.agents/skills/implement-task/`.
-- `scaffold/` is this CLI's `swarm init` payload — a full copy of the current
-  starter kit; its `advanced/` doubles as the local reference cards (SOL
-  notation, checks). The checks contract this CLI implements lives in the
+- `scaffold/` is this CLI's `swarm init` payload — a full copy of the
+  swarm-starter-kit repo (resync = make `diff -rq scaffold ../swarm-starter-kit`
+  report only `.git`); its `advanced/` doubles as the local reference cards
+  (SOL notation, checks). The checks contract this CLI implements lives in the
   swarm repo: `checks/checks.yaml` (v0.4.0).
 
 ## Project facts

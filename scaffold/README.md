@@ -1,19 +1,26 @@
 # Swarm starter kit — a complete workspace
 
-This folder **is** a Swarm workspace. Copy it whole — as a new repo, or as a folder inside an
-existing project — fill in `AGENTS.md`, and run the loop.
+This repository **is** a [Swarm](https://github.com/jcosta33/swarm) workspace. Copy it whole —
+as a new repo, or as a folder inside an existing project — fill in `AGENTS.md`, and run the loop.
 
 ```sh
-cp -R starter-kit my-workspace        # a dedicated workspace repo (git init it) — for one project, or governing several code repos
-cp -R starter-kit your-repo/workspace # or co-located inside your project
-# (-R, not -r: on macOS, -r would replace the kit's symlinks with stale copies)
+# a dedicated workspace repo — for one project, or governing several code repos
+gh repo create my-workspace --template jcosta33/swarm-starter-kit   # or clone and re-init:
+git clone https://github.com/jcosta33/swarm-starter-kit my-workspace && rm -rf my-workspace/.git && git -C my-workspace init
+
+# or co-located inside your project
+git clone https://github.com/jcosta33/swarm-starter-kit /tmp/kit && cp -R /tmp/kit/. your-repo/workspace/ && rm -rf your-repo/workspace/.git
+# (cp -R with the trailing dot keeps the kit's symlinks; -r would replace them with stale copies)
 ```
 
 What you copied:
 
 ```
 AGENTS.md            the bootloader (CLAUDE.md / GEMINI.md are symlinks to it)
-.agents/skills/      the three core guides: write-spec, implement-task, review-output
+.agents/skills/      the core guides — write-spec, implement-task, review-output — plus the
+                     workspace authoring guides: write-audit, write-research, write-rfc,
+                     write-prd, write-bug-report, write-change-plan, write-inventory,
+                     spec-check, split-work, save-findings, adversarial-review
 .claude/skills       symlink -> .agents/skills — Claude Code discovers the guides natively
 templates/           the eight core artifact templates — spec, task, review, finding,
                      status, intake, inventory, change-plan
@@ -24,7 +31,6 @@ status.md            the hand-edited workboard
 examples/            one worked chain (ticket → spec → task → review → finding) —
                      read it, then delete it
 advanced/            optional templates and reference cards — use in place when needed
-                     (optional agent guides install from the swarm-skills catalog)
 .gitignore.additions lines for your CODE repos (this workspace commits its artifacts)
 ```
 
@@ -37,8 +43,10 @@ After copying:
 3. Write one spec for your next non-trivial change: `specs/<feature>/spec.md`. Run the loop.
 
 `advanced/` is optional — copy pieces when the work needs them. The audit template is the
-recommended first taste for brownfield codebases. Optional agent guides (audits, research,
-change plans, per-change-shape implementation depth) install from the swarm-skills catalog:
+recommended first taste for brownfield codebases. Conditioning stances (the personas) and
+per-change-shape implementation guides install from the
+[swarm-skills catalog](https://github.com/jcosta33/swarm-skills):
 `npx skills add jcosta33/swarm-skills --list`.
 
-Full instructions: `docs/ADOPTING.md` in the Swarm repo. Worked examples: `docs/examples/`.
+Full instructions: [`docs/ADOPTING.md`](https://github.com/jcosta33/swarm/blob/main/docs/ADOPTING.md)
+in the Swarm repo. Worked examples: [`docs/examples/`](https://github.com/jcosta33/swarm/tree/main/docs/examples).

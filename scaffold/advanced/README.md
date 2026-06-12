@@ -24,14 +24,19 @@ the ADR, which lives in `decisions/`.
 `sol-reference.md` (structured requirements) and `checks-reference.md` (common
 mistakes to check for) — read in place; nothing to install.
 
-## Optional agent guides (the swarm-skills catalog)
+## The matching agent guides (ship in `.agents/skills/`)
 
-Focused guides for the work these templates support — `write-audit`,
-`write-research`, `persona-surveyor`, `write-bug-report`, `write-prd`,
-`write-rfc`, `write-change-plan`, `write-inventory`, `spec-check`,
-`save-findings`, `split-work`, `adversarial-review` — plus long-form
-implementation guides per change shape (feature, fix, refactor, rewrite,
-migration, performance, testing, documentation, flaky tests) live in the
+The guides for the work these templates support — `write-audit`, `write-research`,
+`write-rfc`, `write-prd`, `write-bug-report`, `write-change-plan`, `write-inventory` —
+ship installed in the kit's `.agents/skills/`, beside the core loop guides and the
+workspace-process guides (`spec-check`, `split-work`, `save-findings`,
+`adversarial-review`). Nothing to install.
+
+## More guides (the swarm-skills catalog)
+
+Conditioning stances (the personas) and long-form implementation guides per change
+shape (feature, fix, refactor, rewrite, migration, performance, testing,
+documentation, flaky tests) live in the
 [swarm-skills catalog](https://github.com/jcosta33/swarm-skills). Install into
 `.agents/skills/` with `npx skills add jcosta33/swarm-skills --list`, or copy
 the folders.
