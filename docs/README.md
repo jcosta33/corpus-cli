@@ -12,11 +12,11 @@ This documentation defines the architectural rules, coding conventions, testing 
 
 ## The Swarm workflow
 
-The Swarm CLI runs on the Swarm spec discipline: messy inputs become SOL obligation specs, work is bounded
-to assigned obligations, and a merge gate clears it on reviewable evidence. The agent-facing rules are not in
-this `docs/` tree — they live in the live Swarm surface:
+The Swarm CLI runs on the Swarm working discipline: specs carry verifiable requirements, a task
+packet bounds each unit of agent work, and the review packet clears it on pasted evidence. The
+agent-facing rules are not in this `docs/` tree — they live in the live Swarm surface:
 
 - ➡️ **[`AGENTS.md`](../AGENTS.md)** — the always-loaded bootloader (startup, project facts, command bindings).
-- ➡️ **[`.claude/skills/`](../.claude/skills/)** — the step guides (author → lint → improve → lower → decompose → implement → verify → review → promote) + persona stances, each carrying its procedure inline.
+- ➡️ **[`.claude/skills/`](../.claude/skills/)** — the `implement-task` guide plus this repo's engineering skills, each carrying its procedure inline.
 - ➡️ **[`scaffold/advanced/`](../scaffold/advanced/)** — the kit's reference cards (SOL notation, checks)
 - ➡️ **Toolchain specs** — in the Swarm workspace (the sibling `swarm-hq` repo, `specs/`).
