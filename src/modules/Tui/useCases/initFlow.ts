@@ -32,7 +32,12 @@ export async function run_init_flow(prompter: Prompter, deps: InitFlowDeps): Pro
         prompter.outro('Cancelled.');
         return 1;
     }
-    const policy = choice === 'overwrite' ? 'overwrite' : choice === 'backup' ? 'backup' : 'skip';
+    let policy: 'skip' | 'overwrite' | 'backup' = 'skip';
+    if (choice === 'overwrite') {
+        policy = 'overwrite';
+    } else if (choice === 'backup') {
+        policy = 'backup';
+    }
 
     const spin = prompter.spinner();
     spin.start('Scaffolding the workspace…');

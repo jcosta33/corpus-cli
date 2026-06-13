@@ -109,7 +109,12 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
 
     const hasBlocking = findings.length > 0 || specs.some((spec) => spec.level === 'blocking');
     const hasWarning = specs.some((spec) => spec.level === 'warning');
-    const level: OutcomeLevel = hasBlocking ? 'blocking' : hasWarning ? 'warning' : 'clean';
+    let level: OutcomeLevel = 'clean';
+    if (hasBlocking) {
+        level = 'blocking';
+    } else if (hasWarning) {
+        level = 'warning';
+    }
 
     return ok({ level, verdict: hasBlocking ? 'blocking' : 'clean', specs, workspaceFindings: findings });
 }

@@ -24,7 +24,7 @@ function format_diagnostic(diagnostic: RenderDiagnostic): string {
     return `  ${icon}  ${color.bold(diagnostic.code)}  ${diagnostic.message}${where}`;
 }
 
-export function format_check_report(report: { path: string; level: RenderLevel; diagnostics: ReadonlyArray<RenderDiagnostic> }): string {
+export function format_check_report(report: { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }): string {
     const errors = report.diagnostics.filter((d) => d.severity === 'hard-error').length;
     const warnings = report.diagnostics.length - errors;
     const head = `${color.bold(report.path)}  ${format_verdict(report.level)}  ${color.dim(`${String(errors)} errors, ${String(warnings)} warnings`)}`;
@@ -36,8 +36,8 @@ export function format_check_report(report: { path: string; level: RenderLevel; 
 
 export function format_workspace_report(report: {
     verdict: 'clean' | 'blocking';
-    specs: ReadonlyArray<{ path: string; level: RenderLevel }>;
-    workspaceFindings: ReadonlyArray<{ code: string; message: string }>;
+    specs: readonly { path: string; level: RenderLevel }[];
+    workspaceFindings: readonly { code: string; message: string }[];
 }): string {
     const verdict = report.verdict === 'clean' ? color.green('✓ clean') : color.red('✗ blocking');
     const lines = [`Workspace verdict: ${verdict}  ${color.dim(`${String(report.specs.length)} specs`)}`, ''];
@@ -51,9 +51,9 @@ export function format_workspace_report(report: {
 }
 
 export function format_board(board: {
-    specs: ReadonlyArray<{ id: string; status: string; tasks: ReadonlyArray<{ id: string; status: string; hasReview: boolean; reviewStatus: string | null }> }>;
-    tasksWithoutReview: ReadonlyArray<string>;
-    needsHuman: ReadonlyArray<string>;
+    specs: readonly { id: string; status: string; tasks: readonly { id: string; status: string; hasReview: boolean; reviewStatus: string | null }[] }[];
+    tasksWithoutReview: readonly string[];
+    needsHuman: readonly string[];
 }): string {
     const lines: string[] = [];
     for (const spec of board.specs) {
@@ -72,7 +72,7 @@ export function format_board(board: {
     return lines.length > 0 ? lines.join('\n') : color.dim('(no specs yet)');
 }
 
-export function format_worktrees(worktrees: ReadonlyArray<{ branch: string; path: string; dirty: boolean }>): string {
+export function format_worktrees(worktrees: readonly { branch: string; path: string; dirty: boolean }[]): string {
     if (worktrees.length === 0) {
         return color.dim('(no swarm worktrees)');
     }
@@ -83,13 +83,13 @@ export function format_worktrees(worktrees: ReadonlyArray<{ branch: string; path
 
 export function format_init_report(report: {
     mode: string;
-    written: ReadonlyArray<string>;
-    skipped: ReadonlyArray<string>;
-    merged: ReadonlyArray<string>;
-    backedUp: ReadonlyArray<string>;
-    overwritten: ReadonlyArray<string>;
+    written: readonly string[];
+    skipped: readonly string[];
+    merged: readonly string[];
+    backedUp: readonly string[];
+    overwritten: readonly string[];
 }): string {
-    const line = (label: string, items: ReadonlyArray<string>, paint: (s: string) => string) =>
+    const line = (label: string, items: readonly string[], paint: (s: string) => string) =>
         items.length > 0 ? `  ${paint(label)}: ${items.join(', ')}` : null;
     return [
         `init (${report.mode})`,

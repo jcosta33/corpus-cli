@@ -52,7 +52,7 @@ export function severity_of(id: CheckId): CheckSeverity {
 }
 
 // Mirrors checks.yaml `core_checks`, id + name + severity (severity drawn from the table above).
-export const CORE_CHECKS: ReadonlyArray<{ id: CheckId; name: string; severity: CheckSeverity }> = [
+export const CORE_CHECKS: readonly { id: CheckId; name: string; severity: CheckSeverity }[] = [
     { id: 'C001', name: 'unique-ids', severity: severity_of('C001') },
     { id: 'C002', name: 'duplicate-id', severity: severity_of('C002') },
     { id: 'C003', name: 'verify-with', severity: severity_of('C003') },

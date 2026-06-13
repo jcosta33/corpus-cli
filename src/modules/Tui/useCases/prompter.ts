@@ -26,8 +26,8 @@ export type Prompter = Readonly<{
     error: (message: string) => void;
     // Values are strings (command names, requirement ids, slugs) — keeps clack's conditional Option
     // type resolvable and the surface simple. Callers map the chosen string back to meaning.
-    select: (input: { message: string; options: ReadonlyArray<Choice<string>>; initialValue?: string }) => Promise<string | Cancelled>;
-    multiselect: (input: { message: string; options: ReadonlyArray<Choice<string>>; required?: boolean }) => Promise<string[] | Cancelled>;
+    select: (input: { message: string; options: readonly Choice<string>[]; initialValue?: string }) => Promise<string | Cancelled>;
+    multiselect: (input: { message: string; options: readonly Choice<string>[]; required?: boolean }) => Promise<string[] | Cancelled>;
     confirm: (input: { message: string; initialValue?: boolean }) => Promise<boolean | Cancelled>;
     text: (input: { message: string; placeholder?: string; defaultValue?: string }) => Promise<string | Cancelled>;
     spinner: () => Spinner;

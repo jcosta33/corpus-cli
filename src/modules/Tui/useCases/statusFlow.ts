@@ -9,7 +9,7 @@ import { format_board } from '../services/render.ts';
 
 export type StatusFlowDeps = Readonly<{ workspaceDir: string }>;
 
-export async function run_status_flow(prompter: Prompter, deps: StatusFlowDeps): Promise<number> {
+export function run_status_flow(prompter: Prompter, deps: StatusFlowDeps): number {
     prompter.intro('swarm status');
     const result = derive_board({ workspaceDir: deps.workspaceDir });
     /* v8 ignore start -- derive_board does not err; it returns a Result for contract uniformity */

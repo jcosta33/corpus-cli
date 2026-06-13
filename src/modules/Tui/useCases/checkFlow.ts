@@ -50,7 +50,7 @@ async function check_one(prompter: Prompter, workspaceDir: string): Promise<numb
     return exit_code_for(result.value.level);
 }
 
-async function check_all(prompter: Prompter, workspaceDir: string): Promise<number> {
+function check_all(prompter: Prompter, workspaceDir: string): number {
     const spin = prompter.spinner();
     spin.start('Checking every spec in the workspace…');
     const result = check_workspace({ workspaceDir });

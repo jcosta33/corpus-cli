@@ -6,7 +6,7 @@
 // and the assignability check at the call site catches any drift at compile time (model isolation).
 
 import { type Result, ok, err, isErr } from '../../../infra/errors/result.ts';
-import { createAppError, type AppError } from '../../../infra/errors/createAppError.ts';
+import { type AppError } from '../../../infra/errors/createAppError.ts';
 import { split_frontmatter } from '../services/frontmatter.ts';
 
 export type SpecRecordRequirement = Readonly<{
@@ -66,12 +66,12 @@ function parse_frontmatter(lines: readonly string[], end_line: number): SpecReco
 
     for (let index = 1; index < end_line - 1; index += 1) {
         const line = lines[index];
-        const list_match = line.match(/^\s+-\s+(.*)$/);
+        const list_match = /^\s+-\s+(.*)$/.exec(line);
         if (collecting_sources && list_match !== null) {
             sources.push(...source_tokens(list_match[1]));
             continue;
         }
-        const key_match = line.match(/^(\w[\w-]*):\s*(.*)$/);
+        const key_match = /^(\w[\w-]*):\s*(.*)$/.exec(line);
         if (key_match === null) {
             continue;
         }
@@ -149,7 +149,7 @@ export function parse_spec_record(input: ParseSpecRecordInput): ParseSpecRecordR
         const line = body_lines[offset];
         const source_line = body_start_line + offset;
 
-        const requirement_match = line.match(REQUIREMENT_HEADING);
+        const requirement_match = REQUIREMENT_HEADING.exec(line);
         if (requirement_match !== null) {
             flush_requirement();
             in_non_goals = false;
@@ -157,7 +157,7 @@ export function parse_spec_record(input: ParseSpecRecordInput): ParseSpecRecordR
             continue;
         }
 
-        const section_match = line.match(SECTION_HEADING);
+        const section_match = SECTION_HEADING.exec(line);
         if (section_match !== null) {
             flush_requirement();
             const title = section_match[1];

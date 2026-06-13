@@ -17,7 +17,7 @@ export type ListSwarmWorktreesReport = Readonly<{
 
 export function list_swarm_worktrees(repoRoot: string): ListSwarmWorktreesReport {
     const worktrees = worktree_list(repoRoot)
-        .filter((entry): entry is typeof entry & { branch: string } => entry.branch !== null && entry.branch.startsWith('swarm/'))
+        .filter((entry): entry is typeof entry & { branch: string } => entry.branch?.startsWith('swarm/') === true)
         .map((entry) => ({ path: entry.path, branch: entry.branch, dirty: is_worktree_dirty(entry.path) }));
     return { level: 'clean', worktrees };
 }

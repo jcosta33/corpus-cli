@@ -92,16 +92,16 @@ export default tseslint.config(
     {
         files: ['**/*.{ts,mts,cts}'],
         rules: {
-            // AGENTS.md § TypeScript — soundness.
-            // `no-explicit-any` stays an error (narrow `unknown` instead).
-            // The `no-unsafe-*` family is a warning during the legacy-code
-            // cleanup; flip to `error` once accumulated debt is gone.
+            // AGENTS.md § TypeScript — soundness. The legacy SOL-era code that
+            // accumulated `any` debt has been removed (M1 realignment), so the
+            // `no-unsafe-*` family is now an error in source (tests relax it for
+            // JSON.parse / mock convenience — see the test-file override below).
             '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/no-unsafe-argument': 'warn',
-            '@typescript-eslint/no-unsafe-assignment': 'warn',
-            '@typescript-eslint/no-unsafe-call': 'warn',
-            '@typescript-eslint/no-unsafe-member-access': 'warn',
-            '@typescript-eslint/no-unsafe-return': 'warn',
+            '@typescript-eslint/no-unsafe-argument': 'error',
+            '@typescript-eslint/no-unsafe-assignment': 'error',
+            '@typescript-eslint/no-unsafe-call': 'error',
+            '@typescript-eslint/no-unsafe-member-access': 'error',
+            '@typescript-eslint/no-unsafe-return': 'error',
             '@typescript-eslint/no-floating-promises': 'error',
             '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }],
             '@typescript-eslint/await-thenable': 'error',
@@ -171,15 +171,20 @@ export default tseslint.config(
     },
 
     // ── Test files: relax soundness for mocking convenience ──────────────────
+    // Tests parse JSON, spy on process streams, and script mocks — `any` flows
+    // through them by nature. The unsafe family is off here; the product source
+    // (above) keeps it as an error.
     {
-        files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+        files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}', '**/testing/**/*.{ts,tsx}'],
         rules: {
-            '@typescript-eslint/no-explicit-any': 'warn',
-            '@typescript-eslint/no-unsafe-argument': 'warn',
-            '@typescript-eslint/no-unsafe-assignment': 'warn',
-            '@typescript-eslint/no-unsafe-call': 'warn',
-            '@typescript-eslint/no-unsafe-member-access': 'warn',
-            '@typescript-eslint/no-unsafe-return': 'warn',
+            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-unsafe-argument': 'off',
+            '@typescript-eslint/no-unsafe-assignment': 'off',
+            '@typescript-eslint/no-unsafe-call': 'off',
+            '@typescript-eslint/no-unsafe-member-access': 'off',
+            '@typescript-eslint/no-unsafe-return': 'off',
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            '@typescript-eslint/prefer-regexp-exec': 'off',
             '@typescript-eslint/no-empty-object-type': 'off',
             '@typescript-eslint/unbound-method': 'off',
             'no-restricted-syntax': 'off',

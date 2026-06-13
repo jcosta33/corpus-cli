@@ -12,7 +12,7 @@ export function read_frontmatter(source: string): Record<string, string> {
         if (lines[index] === '---') {
             break;
         }
-        const match = lines[index].match(/^(\w[\w-]*):\s*(.*)$/);
+        const match = /^(\w[\w-]*):\s*(.*)$/.exec(lines[index]);
         if (match !== null && match[2].trim().length > 0) {
             out[match[1]] = match[2].trim();
         }
