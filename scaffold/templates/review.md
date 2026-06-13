@@ -47,11 +47,24 @@ Spot-checked: {{which green row's evidence you re-ran yourself}}
 <!-- Route the exceptions, not the diff: unverified or failed requirements ·
      out-of-scope changes · risky files · missing test output · changed public
      interfaces · DB migrations · security-sensitive changes · new finding
-     candidates · blocked questions. A waived row records: who waived · which
+     candidates · blocked questions · missing or unconvincing worker-boot
+     provenance for a delegated task (no sources/guide evidence, a guide that
+     silently failed to load, or a worker that left no task artifact at all) —
+     investigate, don't rubber-stamp. A waived row records: who waived · which
      rows · why · expiry — the packet status becomes `waived` at merge
      (expiry semantics: the advanced lifecycle, in the Swarm repo). -->
 
 1. {{exception — why it matters — suggested action}}
+
+## Task status
+
+<!-- At closeout, confirm the task's board row AND the task packet's own
+     `status:` frontmatter are updated together — review-ready → closed (or
+     blocked). A worker that boots from a stale packet inherits stale state.
+     "Committed, runtime/human validation pending" = this packet `needs-human`
+     + the task `review-ready`; don't invent new states. -->
+
+{{board row + packet status updated to … }}
 
 ## Suggested decision
 

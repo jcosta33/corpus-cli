@@ -65,3 +65,7 @@ Implement or preserve:
 - Verify results: {{one line per command, citing its Verify item above}}
 - Out-of-scope edits: {{none, or each listed with a reason}}
 - Blocked questions: {{none, or each stated}}
+- Provenance: {{delegated/worker-run tasks only — sources read (AGENTS.md,
+  task, spec, change plan), guide(s) loaded, worker identity, isolation mode
+  (worktree / shared tree / patch-only); omit for a lead-run or trivial task.
+  If the worker authored no task file, the lead fills this on merge-back. }}
