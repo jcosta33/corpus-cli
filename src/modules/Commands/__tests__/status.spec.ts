@@ -1,114 +1,64 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
 import { run } from '../useCases/status.ts';
-import { spawnSync } from 'child_process';
 
-vi.mock('child_process', async (importOriginal) => {
-    const actual = await importOriginal();
-    return { ...(actual as object), spawnSync: vi.fn() };
+let ws: string;
+beforeEach(() => {
+    ws = mkdtempSync(join(tmpdir(), 'swarm-status-cmd-'));
+});
+afterEach(() => {
+    rmSync(ws, { recursive: true, force: true });
 });
 
-vi.mock('../../Terminal/useCases/index.ts', async (importOriginal) => {
-    const actual = await importOriginal();
-    return {
-        ...(actual as object),
-        parse_args: vi.fn(),
-        red: vi.fn((t: string) => t),
-        cyan: vi.fn((t: string) => t),
-        bold: vi.fn((t: string) => t),
-        green: vi.fn((t: string) => t),
-        yellow: vi.fn((t: string) => t),
-        dim: vi.fn((t: string) => t),
-        logger: { info: vi.fn(), error: vi.fn(), raw: vi.fn(), warn: vi.fn() },
-    };
-});
+async function capture(fn: () => Promise<number>): Promise<{ out: string; code: number }> {
+    const out: string[] = [];
+    const o = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        out.push(String(chunk));
+        return true;
+    });
+    const e = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+        const code = await fn();
+        return { out: out.join(''), code };
+    } finally {
+        o.mockRestore();
+        e.mockRestore();
+    }
+}
 
-vi.mock('../../Workspace/useCases/index.ts', () => ({
-    get_repo_root: vi.fn(() => '/tmp/repo'),
-    worktree_list: vi.fn(() => [{ path: '/tmp/repo/.agents/agent-foo', branch: 'agent/foo', head: 'abc' }]),
-}));
+function seed(): void {
+    mkdirSync(join(ws, 'specs', 'feat'), { recursive: true });
+    writeFileSync(join(ws, 'specs', 'feat', 'spec.md'), '---\ntype: spec\nid: SPEC-feat\nstatus: ready\n---\n');
+    mkdirSync(join(ws, 'tasks'), { recursive: true });
+    writeFileSync(join(ws, 'tasks', 't1.md'), '---\ntype: task\nid: TASK-1\nsource: SPEC-feat\nstatus: review-ready\n---\n');
+    mkdirSync(join(ws, 'reviews'), { recursive: true });
+    writeFileSync(join(ws, 'reviews', 'r1.md'), '---\ntype: review\nid: REV-1\ntask: TASK-1\nstatus: needs-human\n---\n');
+}
 
-vi.mock('../../AgentState/useCases/index.ts', () => ({
-    read_state: vi.fn(() => ({ foo: { status: 'running', agent: 'claude', pid: 1234 } })),
-    is_process_running: vi.fn(() => true),
-    query_sessions: vi.fn(() => []),
-}));
-
-vi.mock('fs', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('fs')>();
-    return {
-        ...actual,
-        existsSync: vi.fn(() => true),
-        readFileSync: vi.fn(() => '## Objective\nDo the thing\n'),
-    };
-});
-
-import { parse_args } from '../../Terminal/useCases/index.ts';
-import { get_repo_root } from '../../Workspace/useCases/index.ts';
-import { read_state, query_sessions } from '../../AgentState/useCases/index.ts';
-
-describe('status module', () => {
-    beforeEach(() => {
-        vi.spyOn(console, 'log').mockImplementation(() => {});
-        vi.spyOn(console, 'error').mockImplementation(() => {});
+describe('status command (direct surface, AC-011)', () => {
+    it('renders an empty board for an empty workspace, exit 0', async () => {
+        const { code, out } = await capture(() => run([], ws));
+        expect(code).toBe(0);
+        expect(out).toContain('no specs yet');
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+    it('renders the derived board over the workspace artifacts', async () => {
+        seed();
+        const { code, out } = await capture(() => run([], ws));
+        expect(code).toBe(0);
+        expect(out).toContain('SPEC-feat');
+        expect(out).toContain('Needs human: TASK-1');
     });
 
-    it('returns 1 when not in a git repo', () => {
-        vi.mocked(get_repo_root).mockImplementation(() => { throw new Error('not a repo'); });
-        expect(run()).toBe(1);
-    });
-
-    it('returns 1 when args are missing', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: [], flags: new Map() });
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(1);
-    });
-
-    it('returns 0 with state and worktree', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: ['foo'], flags: new Map() });
-        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: '' } as ReturnType<typeof spawnSync>);
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(0);
-    });
-
-    it('returns 0 with dirty worktree', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: ['foo'], flags: new Map() });
-        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: 'M file.ts\n' } as ReturnType<typeof spawnSync>);
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(0);
-    });
-
-    it('returns 0 with no state', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: ['foo'], flags: new Map() });
-        vi.mocked(read_state).mockReturnValue({});
-        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: '' } as ReturnType<typeof spawnSync>);
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(0);
-    });
-
-    it('returns 0 with sessions', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: ['foo'], flags: new Map() });
-        vi.mocked(query_sessions).mockReturnValue([
-            { slug: 'foo', agent: 'claude', started_at: '2024-01-01T00:00:00Z', finished_at: '2024-01-01T00:01:00Z', exit_code: 0 },
-        ]);
-        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: '' } as ReturnType<typeof spawnSync>);
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(0);
-    });
-
-    it('returns 0 when no worktree found', () => {
-        vi.mocked(get_repo_root).mockReturnValue('/tmp/repo');
-        vi.mocked(parse_args).mockReturnValue({ positional: ['bar'], flags: new Map() });
-        vi.mocked(spawnSync).mockReturnValue({ status: 0, stdout: '' } as ReturnType<typeof spawnSync>);
-        process.argv = ['node', 'script'];
-        expect(run()).toBe(0);
+    it('--json emits a parseable board', async () => {
+        seed();
+        const { code, out } = await capture(() => run(['--json'], ws));
+        expect(code).toBe(0);
+        const board = JSON.parse(out);
+        expect(board.specs[0].id).toBe('SPEC-feat');
+        expect(board.needsHuman).toEqual(['TASK-1']);
     });
 });
