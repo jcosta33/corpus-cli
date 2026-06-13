@@ -56,20 +56,22 @@ describe('severity_of', () => {
 });
 
 describe('is_workspace_ref', () => {
-    it('treats paths, dotted files, and anchors as workspace refs', () => {
+    it('treats paths and doc-like files as workspace refs', () => {
         expect(is_workspace_ref('specs/x/spec.md')).toBe(true);
         expect(is_workspace_ref('../swarm/checks/checks.yaml')).toBe(true);
         expect(is_workspace_ref('file.md')).toBe(true);
-        expect(is_workspace_ref('#a-heading')).toBe(true);
+        expect(is_workspace_ref('config.json')).toBe(true);
     });
 
-    it('exempts bare tracker ids, urls, and plain words', () => {
+    it('exempts bare tracker ids, urls, prose tokens, and bare cross-refs', () => {
         expect(is_workspace_ref('JIRA-123')).toBe(false);
         expect(is_workspace_ref('ADR-0077')).toBe(false);
         expect(is_workspace_ref('https://example.com')).toBe(false);
         expect(is_workspace_ref('http://example.com')).toBe(false);
         expect(is_workspace_ref('mailto:a@b.c')).toBe(false);
         expect(is_workspace_ref('plainword')).toBe(false);
+        expect(is_workspace_ref('e.g.')).toBe(false);
+        expect(is_workspace_ref('#a-heading')).toBe(false);
         expect(is_workspace_ref('   ')).toBe(false);
     });
 });

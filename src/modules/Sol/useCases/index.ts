@@ -3,3 +3,4 @@
 // `ReturnType<typeof parse_spec>` rather than a re-exported model type (model isolation).
 
 export { parse_spec } from './parseSpec.ts';
+export { parse_spec_record } from './parseSpecRecord.ts';

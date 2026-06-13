@@ -135,8 +135,10 @@ export function is_workspace_ref(raw: string): boolean {
     if (/^[A-Z]+-\d+$/.test(value)) {
         return false;
     }
-    // Anything that looks like a path or a file reference is a workspace ref.
-    return value.includes('/') || value.includes('.') || value.startsWith('#');
+    // A workspace ref is a path (has a separator) or names a doc-like file by extension. A bare
+    // name without either (a prose token, an unqualified cross-ref) is not resolvable here — bare
+    // cross-ref id resolution is workspace-scope (C002), not a single-file path check.
+    return value.includes('/') || /\.(?:md|ya?ml|json|ts|txt)$/i.test(value);
 }
 
 function count_strength_words(text: string): number {
