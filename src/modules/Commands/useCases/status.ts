@@ -8,7 +8,9 @@ import { project, derive_board } from '../../Core/useCases/index.ts';
 import { parse_flags } from '../../Terminal/useCases/index.ts';
 import { format_board, run_status_flow, create_clack_prompter } from '../../Tui/useCases/index.ts';
 
-export async function run(argv: string[], cwd: string = process.cwd()): Promise<number> {
+// Synchronous: `status` only reads + renders (no prompts to await). The dispatcher awaits commands
+// uniformly, so a plain exit code is fine here.
+export function run(argv: string[], cwd: string = process.cwd()): number {
     const { flags } = parse_flags(argv, { booleans: ['--json', '-i', '--interactive'], strings: [] });
     const json = flags.get('json') === true;
     const interactive = flags.get('i') === true || flags.get('interactive') === true;
@@ -24,8 +26,6 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
 
 /* v8 ignore start -- the script entry runs when spawned by the dispatcher, not as a unit */
 if (import.meta.url === `file://${process.argv[1]}`) {
-    void run(process.argv.slice(2)).then((code) => {
-        process.exitCode = code;
-    });
+    process.exitCode = run(process.argv.slice(2));
 }
 /* v8 ignore stop */

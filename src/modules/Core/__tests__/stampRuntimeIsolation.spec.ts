@@ -10,7 +10,7 @@ describe('stamp_runtime_isolation', () => {
         const writes: string[] = [];
         const report = stamp_runtime_isolation({
             worktreePath: '/wt',
-            specSlug: 'checkout',
+            slug: 'checkout',
             config: null,
             writeFile: (path) => writes.push(path),
         });
@@ -23,7 +23,7 @@ describe('stamp_runtime_isolation', () => {
         const captured: { path: string; content: string }[] = [];
         const report = stamp_runtime_isolation({
             worktreePath: '/wt',
-            specSlug: 'checkout',
+            slug: 'checkout',
             config: { portRangeStart: 4000, portRangeSize: 100 },
             writeFile: (path, content) => captured.push({ path, content }),
         });
@@ -37,9 +37,9 @@ describe('stamp_runtime_isolation', () => {
 
     it('is deterministic per slug and gives distinct slugs distinct offsets', () => {
         const config = { portRangeStart: 4000, portRangeSize: 1000 };
-        const a1 = stamp_runtime_isolation({ worktreePath: '/a', specSlug: 'checkout', config, writeFile: () => {} });
-        const a2 = stamp_runtime_isolation({ worktreePath: '/a', specSlug: 'checkout', config, writeFile: () => {} });
-        const b = stamp_runtime_isolation({ worktreePath: '/b', specSlug: 'payments', config, writeFile: () => {} });
+        const a1 = stamp_runtime_isolation({ worktreePath: '/a', slug: 'checkout', config, writeFile: () => {} });
+        const a2 = stamp_runtime_isolation({ worktreePath: '/a', slug: 'checkout', config, writeFile: () => {} });
+        const b = stamp_runtime_isolation({ worktreePath: '/b', slug: 'payments', config, writeFile: () => {} });
         expect(a1.portOffset).toBe(a2.portOffset);
         expect(a1.portOffset).not.toBe(b.portOffset);
     });
@@ -49,7 +49,7 @@ describe('stamp_runtime_isolation', () => {
         try {
             const report = stamp_runtime_isolation({
                 worktreePath: dir,
-                specSlug: 'checkout',
+                slug: 'checkout',
                 config: { portRangeStart: 5000, portRangeSize: 50 },
             });
             const stampPath = join(dir, '.swarm-runtime.json');

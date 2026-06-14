@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtempSync, rmSync, realpathSync, writeFileSync } from 'fs';
+import { mkdtempSync, rmSync, realpathSync, writeFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
@@ -87,6 +87,74 @@ describe('the launch engine surfaces git failures as Err (exit 2), never a crash
             expect(assertErr(prune_worktrees(notARepo))._tag).toBe('WorktreePruneFailed');
         } finally {
             rmSync(notARepo, { recursive: true, force: true });
+        }
+    });
+});
+
+describe('the launch engine stamps runtime isolation (AC-010)', () => {
+    it('stamps distinct ports for two worktrees when a range is configured', () => {
+        const readConfig = () => ({ portRangeStart: 4000, portRangeSize: 1000 });
+        const writes: { path: string; content: string }[] = [];
+        const writeStamp = (path: string, content: string) => writes.push({ path, content });
+
+        const one = assertOk(create_worktree({ repoRoot, specSlug: 'iso-a', baseBranch, readConfig, writeStamp }));
+        const two = assertOk(create_worktree({ repoRoot, specSlug: 'iso-b', baseBranch, readConfig, writeStamp }));
+
+        expect(one.port).not.toBeNull();
+        expect(two.port).not.toBeNull();
+        expect(one.port).not.toBe(two.port);
+        expect(writes).toHaveLength(2);
+        expect(writes.every((w) => w.path.endsWith('.swarm-runtime.json'))).toBe(true);
+
+        assertOk(remove_worktree({ repoRoot, specSlug: 'iso-a', force: true }));
+        assertOk(remove_worktree({ repoRoot, specSlug: 'iso-b', force: true }));
+    });
+
+    it('is a no-op (port null, no stamp written) when no range is configured', () => {
+        const writes: string[] = [];
+        const created = assertOk(
+            create_worktree({
+                repoRoot,
+                specSlug: 'iso-none',
+                baseBranch,
+                readConfig: () => null,
+                writeStamp: (path) => writes.push(path),
+            })
+        );
+        expect(created.port).toBeNull();
+        expect(writes).toEqual([]);
+        assertOk(remove_worktree({ repoRoot, specSlug: 'iso-none', force: true }));
+    });
+
+    it('reads runtimeIsolation from swarm.config.json on disk by default', () => {
+        const isoRepo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-iso-')));
+        const isoGit = (args: string[]) => execFileSync('git', args, { cwd: isoRepo, encoding: 'utf8' });
+        try {
+            isoGit(['init']);
+            isoGit(['config', 'user.email', 'test@example.com']);
+            isoGit(['config', 'user.name', 'Test']);
+            isoGit(['commit', '--allow-empty', '-m', 'init']);
+            const base = isoGit(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+
+            // No config file → no-op.
+            expect(assertOk(create_worktree({ repoRoot: isoRepo, specSlug: 'cfg-none', baseBranch: base })).port).toBeNull();
+
+            // Malformed JSON → no-op (never throws).
+            writeFileSync(join(isoRepo, 'swarm.config.json'), '{ not valid json');
+            expect(assertOk(create_worktree({ repoRoot: isoRepo, specSlug: 'cfg-bad', baseBranch: base })).port).toBeNull();
+
+            // Valid config → a port in range + the fixture written to the worktree.
+            writeFileSync(
+                join(isoRepo, 'swarm.config.json'),
+                JSON.stringify({ runtimeIsolation: { portRangeStart: 7000, portRangeSize: 10 } })
+            );
+            const stamped = assertOk(create_worktree({ repoRoot: isoRepo, specSlug: 'cfg-ok', baseBranch: base }));
+            expect(stamped.port).not.toBeNull();
+            expect(stamped.port).toBeGreaterThanOrEqual(7000);
+            expect(stamped.port).toBeLessThan(7010);
+            expect(existsSync(join(stamped.worktreePath, '.swarm-runtime.json'))).toBe(true);
+        } finally {
+            rmSync(isoRepo, { recursive: true, force: true });
         }
     });
 });

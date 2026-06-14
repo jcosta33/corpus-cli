@@ -54,7 +54,10 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         return project({
             result: create_worktree({ repoRoot, specSlug: slug, taskSlug, baseBranch }),
             json,
-            render: (report) => `${report.reused ? 'reusing' : 'created'} ${report.branch}\n  ${report.worktreePath}`,
+            render: (report) => {
+                const head = `${report.reused ? 'reusing' : 'created'} ${report.branch}\n  ${report.worktreePath}`;
+                return report.port === null ? head : `${head}\n  runtime port ${report.port}`;
+            },
         });
     }
     if (subcommand === 'list') {

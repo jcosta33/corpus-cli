@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, realpathSync } from 'fs';
+import { mkdtempSync, rmSync, realpathSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
@@ -102,5 +102,27 @@ describe('worktree command (direct surface, AC-009/010/002)', () => {
         } finally {
             rmSync(notRepo, { recursive: true, force: true });
         }
+    });
+
+    it('create with a runtime-isolation config surfaces the assigned port (AC-010)', async () => {
+        writeFileSync(
+            join(repo, 'swarm.config.json'),
+            JSON.stringify({ runtimeIsolation: { portRangeStart: 6000, portRangeSize: 20 } })
+        );
+        const { out, code } = await capture(() => run(['create', 'checkout'], repo));
+        expect(code).toBe(0);
+        expect(out).toContain('runtime port');
+    });
+
+    it('create --json carries the port field when runtime isolation is configured (AC-010/008)', async () => {
+        writeFileSync(
+            join(repo, 'swarm.config.json'),
+            JSON.stringify({ runtimeIsolation: { portRangeStart: 6000, portRangeSize: 20 } })
+        );
+        const { out } = await capture(() => run(['create', 'checkout', '--json'], repo));
+        const parsed = JSON.parse(out) as { port: number };
+        expect(typeof parsed.port).toBe('number');
+        expect(parsed.port).toBeGreaterThanOrEqual(6000);
+        expect(parsed.port).toBeLessThan(6020);
     });
 });

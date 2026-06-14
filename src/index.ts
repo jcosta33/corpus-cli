@@ -14,7 +14,9 @@ import { run as run_init } from './modules/Commands/useCases/init.ts';
 import { print_help } from './modules/Commands/useCases/help.ts';
 import { run_dashboard_flow, create_clack_prompter } from './modules/Tui/useCases/index.ts';
 
-type CommandRun = (argv: string[], cwd?: string) => Promise<number>;
+// A command returns an exit code — synchronously (`status`, which only renders) or asynchronously
+// (the commands whose `-i` flow awaits prompts). The dispatcher awaits uniformly, so both fit.
+type CommandRun = (argv: string[], cwd?: string) => number | Promise<number>;
 
 const COMMANDS: Record<string, CommandRun> = {
     check: run_check,

@@ -36,6 +36,16 @@ describe('run_worktree_flow', () => {
         expect(p.calls.successes.some((s) => s.includes('swarm/checkout'))).toBe(true);
     });
 
+    it('shows the assigned runtime port when an isolation range is configured (AC-010/015)', async () => {
+        writeFileSync(
+            join(repo, 'swarm.config.json'),
+            JSON.stringify({ runtimeIsolation: { portRangeStart: 6000, portRangeSize: 20 } })
+        );
+        const p = create_mock_prompter({ select: ['create'], text: ['checkout'] });
+        expect(await run_worktree_flow(p, { cwd: repo })).toBe(0);
+        expect(p.calls.outros.some((o) => o.includes('runtime port'))).toBe(true);
+    });
+
     it('removes a chosen worktree (force)', async () => {
         await run_worktree_flow(create_mock_prompter({ select: ['create'], text: ['checkout'] }), { cwd: repo });
         const p = create_mock_prompter({ select: ['remove', 'swarm/checkout'], confirm: [true] });

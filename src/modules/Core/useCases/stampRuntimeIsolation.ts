@@ -6,16 +6,12 @@
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
+import type { RuntimeIsolationConfig } from '../services/runtimeIsolation.ts';
 import type { OutcomeLevel } from './unixOutcome.ts';
-
-export type RuntimeIsolationConfig = Readonly<{
-    portRangeStart: number;
-    portRangeSize: number;
-}> | null;
 
 export type StampRuntimeIsolationInput = Readonly<{
     worktreePath: string;
-    specSlug: string;
+    slug: string;
     config: RuntimeIsolationConfig;
     writeFile?: (path: string, content: string) => void;
 }>;
@@ -44,7 +40,7 @@ export function stamp_runtime_isolation(input: StampRuntimeIsolationInput): Stam
         return { level: 'clean', stamped: false, portOffset: null, port: null };
     }
 
-    const portOffset = offset_for(input.specSlug, input.config.portRangeSize);
+    const portOffset = offset_for(input.slug, input.config.portRangeSize);
     const port = input.config.portRangeStart + portOffset;
     const write = input.writeFile ?? ((path, content) => writeFileSync(path, content));
     write(join(input.worktreePath, STAMP_FILENAME), `${JSON.stringify({ portOffset, port }, null, 2)}\n`);

@@ -38,7 +38,8 @@ async function create(prompter: Prompter, repoRoot: string): Promise<number> {
     }
     /* v8 ignore stop */
     prompter.success(`${result.value.reused ? 'Reusing' : 'Created'} ${result.value.branch}`);
-    prompter.outro(result.value.worktreePath);
+    const path = result.value.worktreePath;
+    prompter.outro(result.value.port === null ? path : `${path}  ·  runtime port ${result.value.port}`);
     return 0;
 }
 

@@ -107,3 +107,28 @@ describe('check command (direct surface, AC-001/005)', () => {
         expect(blocking.code).toBe(2);
     });
 });
+
+// AC-015: the interactive surface never engages when output is machine-bound (`--json`) or piped
+// (no TTY); the same guard protects every command, exercised here on `check` as the representative.
+describe('check never engages the TUI under --json or a non-TTY (AC-015)', () => {
+    const originalIsTTY = process.stdout.isTTY;
+    afterEach(() => {
+        process.stdout.isTTY = originalIsTTY;
+    });
+
+    it('-i with --json takes the direct path on a TTY (emits JSON, no prompt)', async () => {
+        process.stdout.isTTY = true;
+        const file = writeSpec('ok', CONFORMANT);
+        const { code, out } = await capture(() => run([file, '-i', '--json']));
+        expect(code).toBe(0);
+        expect(JSON.parse(out)).toMatchObject({ level: 'clean' });
+    });
+
+    it('-i without a TTY takes the direct path (renders text, no prompt)', async () => {
+        process.stdout.isTTY = false;
+        const file = writeSpec('ok', CONFORMANT);
+        const { code, out } = await capture(() => run([file, '-i']));
+        expect(code).toBe(0);
+        expect(out).toContain('clean');
+    });
+});
