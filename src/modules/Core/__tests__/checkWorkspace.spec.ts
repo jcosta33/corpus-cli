@@ -105,6 +105,19 @@ describe('check_workspace', () => {
         expect(report.verdict).toBe('blocking');
     });
 
+    it('exempts draft specs from cross-spec requirement-id reuse (C002), mirroring C007', () => {
+        // Two fresh draft scaffolds both carry the stub AC-001 — distinct frontmatter ids, so only the
+        // requirement-id rule is in play. A draft's stub ids are not finalized claims → no collision.
+        const draft = (id: string) =>
+            CONFORMANT.replace('id: SPEC-good', `id: ${id}`).replace('status: ready', 'status: draft');
+        writeSpec('alpha', draft('SPEC-alpha'));
+        writeSpec('beta', draft('SPEC-beta'));
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.workspaceFindings.filter((f) => f.code === 'C002')).toEqual([]);
+        expect(report.verdict).toBe('clean');
+    });
+
     it('treats an unparseable spec as blocking', () => {
         writeSpec('broken', 'no frontmatter fence here\n');
         withTemplates();

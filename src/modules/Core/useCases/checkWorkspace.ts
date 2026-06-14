@@ -107,8 +107,15 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
                 specPath,
             ]);
         }
-        for (const requirement of record.requirements) {
-            requirementIdToPaths.set(requirement.id, [...(requirementIdToPaths.get(requirement.id) ?? []), specPath]);
+        // Cross-spec requirement-id uniqueness (C002) applies to finalized specs only — a draft's stub
+        // ids (a fresh scaffold's AC-001) are not committed claims, mirroring C007's `ready`-only gate.
+        if (record.frontmatter.status === 'ready') {
+            for (const requirement of record.requirements) {
+                requirementIdToPaths.set(requirement.id, [
+                    ...(requirementIdToPaths.get(requirement.id) ?? []),
+                    specPath,
+                ]);
+            }
         }
     }
 

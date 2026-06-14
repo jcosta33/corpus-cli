@@ -18,7 +18,7 @@
         "type": "git",
         "url": "git+https://github.com/jcosta33/swarm-cli.git"
     },
-    "license": "ISC",
+    "license": "MIT",
     "author": "José Costa",
     "type": "module",
     "bin": {
