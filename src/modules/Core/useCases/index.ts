@@ -30,6 +30,7 @@ export {
     type ReconcileReviewInput,
 } from './reconcileReview.ts';
 export { resolve_review_run, type ResolveReviewRunInput } from './resolveReviewRun.ts';
+export { draft_review_packet, type DraftReviewPacketInput, type DraftReviewPacket } from './draftReviewPacket.ts';
 
 // prepare engine — init + new, no agent (AC-012/013/016)
 export { init_workspace } from './initWorkspace.ts';

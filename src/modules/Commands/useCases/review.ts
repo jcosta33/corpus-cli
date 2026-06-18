@@ -5,23 +5,45 @@
 // source spec, its task packet, its review packet if one exists), call the read-only engine, and
 // project the reconcile facts to text / `--json` under the advisory exit posture (AC-024). It writes
 // nothing (AC-025) and spawns no agent (AC-026); `--agent` is reserved for M3 and rejected here.
-//   swarm review <task>     reconcile the finished run for <task>
-//   swarm review            (TTY) enter the interactive flow (AC-027)
-//   swarm review --json     machine output, never prompts
+//   swarm review <task>            reconcile the finished run for <task> (read-only, M2)
+//   swarm review <task> --write    write a DRAFT reviews/<slug>.md from the reconcile (W4b)
+//   swarm review                   (TTY) enter the interactive flow (AC-027)
+//   swarm review --json            machine output, never prompts
+//
+// `--write` (W4b, AC-001) is opt-in: WITHOUT it the command stays exactly M2's read-only stdout
+// reconcile. WITH it the command renders a `status: draft`, all-Unverified draft packet from the same
+// reconcile and writes exactly that one file, no-clobber (AC-004 — an existing packet needs `--force`).
 
 import { isErr } from '../../../infra/errors/result.ts';
-import { project, emit_error, usage_error, resolve_review_run, reconcile_review } from '../../Core/useCases/index.ts';
-import { resolve_repo_root } from '../../Workspace/useCases/index.ts';
+import { join } from 'path';
+import {
+    project,
+    emit_error,
+    usage_error,
+    resolve_review_run,
+    reconcile_review,
+    draft_review_packet,
+} from '../../Core/useCases/index.ts';
+import { resolve_repo_root, write_new_file } from '../../Workspace/useCases/index.ts';
 import { parse_flags } from '../../Terminal/useCases/index.ts';
 import { format_review_report, run_review_flow, create_clack_prompter } from '../../Tui/useCases/index.ts';
 
+// The `reviews/<slug>.md` stem for a task id: the id minus a leading `TASK-`, lower-cased — the same
+// task-slug derivation the worktree branch tail uses (resolveReviewRun), so the draft lands beside
+// the run it reviews.
+function review_slug(task: string): string {
+    return task.replace(/^TASK-/i, '').toLowerCase();
+}
+
 export async function run(argv: string[], cwd: string = process.cwd()): Promise<number> {
     const { positional, flags } = parse_flags(argv, {
-        booleans: ['--json', '-i', '--interactive'],
+        booleans: ['--json', '-i', '--interactive', '--write', '--force'],
         strings: ['--base'],
     });
     const json = flags.get('json') === true;
     const interactive = flags.get('i') === true || flags.get('interactive') === true;
+    const write = flags.get('write') === true;
+    const force = flags.get('force') === true;
     const task = positional[0];
 
     // AC-026: `--agent` is reserved for M3 (agent-assisted evidence). M2 is the mechanical reconcile —
@@ -54,6 +76,28 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     const resolved = resolve_review_run({ workspaceDir: cwd, repoRoot: rootResult.value, task, base });
     if (isErr(resolved)) {
         return emit_error(resolved.error, json);
+    }
+
+    // `--write` (W4b): render a DRAFT packet from the same reconcile and write the one file. WITHOUT
+    // `--write` the command falls through to M2's read-only stdout reconcile (unchanged).
+    if (write) {
+        const slug = review_slug(task);
+        const drafted = draft_review_packet({ ...resolved.value, slug });
+        if (isErr(drafted)) {
+            return emit_error(drafted.error, json);
+        }
+        const path = join(cwd, 'reviews', `${slug}.md`);
+        // No-clobber (AC-004): an existing packet is an error unless the operator passes `--force`,
+        // and exactly this one file is written — the workspace/worktree is otherwise byte-unchanged.
+        const writeResult = write_new_file(path, drafted.value.markdown, { overwrite: force });
+        if (isErr(writeResult)) {
+            return emit_error(writeResult.error, json);
+        }
+        return project({
+            result: { ok: true, value: { level: 'clean' as const, path, status: 'draft' as const } },
+            json,
+            render: (value) => `wrote draft review packet: ${value.path}  (status: ${value.status})`,
+        });
     }
 
     return project({ result: reconcile_review(resolved.value), json, render: format_review_report });

@@ -11,3 +11,4 @@ export {
     worktree_changed_files,
     is_worktree_dirty,
 } from './git.ts';
+export { write_new_file, type FileExistsError } from './files.ts';

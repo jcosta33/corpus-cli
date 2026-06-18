@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, realpathSync, writeFileSync, readFileSync, readdirSync, statSync } from 'fs';
+import { mkdtempSync, mkdirSync, rmSync, realpathSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, relative } from 'path';
 import { createHash } from 'crypto';
 import { execFileSync } from 'child_process';
 
 import { run } from '../useCases/review.ts';
+import { run as runCheck } from '../useCases/check.ts';
 
 const SPEC = `---
 type: spec
@@ -311,5 +312,138 @@ describe('review command — never prompts under --json / non-TTY (AC-027)', () 
         process.stdout.isTTY = false;
         const { out } = await capture(() => run(['TASK-feat', '-i'], repo));
         expect(out).toContain('review TASK-feat');
+    });
+});
+
+describe('review command — the draft writer (W4b, AC-001/002/003/004/005)', () => {
+    const draftPath = () => join(repo, 'reviews', 'feat.md');
+
+    it('--write creates reviews/<slug>.md: one row per in-scope id, the diff files, routed attention (AC-001)', async () => {
+        buildRun(); // no pre-existing review packet
+        const { code } = await capture(() => run(['TASK-feat', '--write'], repo));
+        expect(code).toBe(0);
+        const draft = readFileSync(draftPath(), 'utf8');
+        // one coverage row per in-scope id (AC-001, AC-002)
+        expect(draft).toMatch(/\| AC-001 \| Unverified \|/);
+        expect(draft).toMatch(/\| AC-002 \| Unverified \|/);
+        // the worktree's net change (committed + uncommitted) is listed under Changed files
+        expect(draft).toContain('- `committed.ts`');
+        expect(draft).toContain('- `uncommitted.ts`');
+        // no review packet yet → the uncovered candidates route to Human attention
+        expect(draft).toContain('No review packet yet');
+    });
+
+    it('every written Result is Unverified, incl. a row whose reconcile found a matching C013 block (AC-002)', async () => {
+        // A pre-existing packet whose AC-001 row carries a CONSISTENT verify block (cmd = the spec's
+        // `a test.`, result=pass); regenerate over it with --force so the reconcile sees the block.
+        buildRun({
+            reviewRows:
+                '| AC-001 | Pass | p | no |\n' +
+                '\n```verify id=AC-001 cmd="a test." result=pass\nok (1 passed)\n```\n',
+        });
+        const { code } = await capture(() => run(['TASK-feat', '--write', '--force'], repo));
+        expect(code).toBe(0);
+        const draft = readFileSync(draftPath(), 'utf8');
+        // EVERY row Unverified — no Pass slipped in, even for the row backed by a consistent block.
+        expect(draft).not.toMatch(/\|\s*Pass\s*\|/);
+        expect(draft).toMatch(/\| AC-001 \| Unverified \| `a test\.` recorded result=pass \|/);
+    });
+
+    it('the written frontmatter is status: draft, never a terminal status (AC-003)', async () => {
+        buildRun();
+        await capture(() => run(['TASK-feat', '--write'], repo));
+        const draft = readFileSync(draftPath(), 'utf8');
+        expect(draft).toMatch(/^status: draft$/m);
+        expect(draft).not.toMatch(/^status:\s*(pass|waived|blocked|needs-human)\s*$/m);
+    });
+
+    it('a second --write over an existing packet errors and needs --force; only the one file is written (AC-004)', async () => {
+        const wt = buildRun();
+        await capture(() => run(['TASK-feat', '--write'], repo)); // first write
+        // Snapshot the workspace (incl. the draft) + worktree; a second --write must change nothing.
+        const wsBefore = snapshot(repo);
+        const wtBefore = snapshot(wt);
+        const { code, err } = await capture(() => run(['TASK-feat', '--write'], repo));
+        expect(code).toBe(2); // refuse to clobber
+        expect(err).toMatch(/refusing to overwrite|already/i);
+        expect(snapshot(repo)).toBe(wsBefore); // byte-unchanged: nothing written on the refusal
+        expect(snapshot(wt)).toBe(wtBefore);
+        // --force replaces exactly the one packet.
+        const { code: forced } = await capture(() => run(['TASK-feat', '--write', '--force'], repo));
+        expect(forced).toBe(0);
+    });
+
+    it('--write writes exactly the one draft file — no other workspace/worktree byte changes (AC-004)', async () => {
+        const wt = buildRun();
+        const wsBefore = snapshot(repo);
+        const wtBefore = snapshot(wt);
+        await capture(() => run(['TASK-feat', '--write'], repo));
+        // The only new path is reviews/feat.md; the worktree is byte-unchanged.
+        const wsAfter = snapshot(repo).split('\n');
+        const added = wsAfter.filter((line) => !wsBefore.split('\n').includes(line));
+        expect(added).toHaveLength(1);
+        expect(added[0]).toMatch(/^reviews\/feat\.md\t/);
+        expect(snapshot(wt)).toBe(wtBefore);
+    });
+
+    it('swarm check on a freshly written draft reports no structural finding beyond all-Unverified coverage (AC-005)', async () => {
+        buildRun();
+        await capture(() => run(['TASK-feat', '--write'], repo));
+        const { code, out } = await capture(() => runCheck([draftPath(), '--json'], repo));
+        // C012 sees one covered row per in-scope id (no uncovered/orphan); C013 keys on Pass rows and
+        // there are none → clean. No malformed-section / orphan-row finding from the scaffold.
+        const parsed = JSON.parse(out);
+        expect(parsed.diagnostics).toEqual([]);
+        expect(code).toBe(0);
+    });
+
+    it('the default (no --write) stays M2 read-only: stdout reconcile, no file written (AC-001 default)', async () => {
+        const wt = buildRun();
+        const wsBefore = snapshot(repo);
+        const wtBefore = snapshot(wt);
+        const { out } = await capture(() => run(['TASK-feat'], repo));
+        expect(out).toContain('review TASK-feat'); // the M2 stdout reconcile
+        expect(existsSync(draftPath())).toBe(false); // nothing written
+        expect(snapshot(repo)).toBe(wsBefore);
+        expect(snapshot(wt)).toBe(wtBefore);
+    });
+
+    it('--write surfaces a draft error (an empty-scope task packet) as exit 2, writing nothing (AC-004)', async () => {
+        // A finished run whose task packet declares no scope: the run resolves, but the writer refuses
+        // to draft (nothing to cover). This exercises the command's draft-error arm.
+        const emptyScopeTask = TASK.replace('scope: [AC-001, AC-002]', 'scope: []');
+        git(['init']);
+        git(['config', 'user.email', 't@e.com']);
+        git(['config', 'user.name', 'T']);
+        mkdirSync(join(repo, 'specs', 'feat'), { recursive: true });
+        mkdirSync(join(repo, 'tasks'), { recursive: true });
+        writeFileSync(join(repo, 'specs', 'feat', 'spec.md'), SPEC);
+        writeFileSync(join(repo, 'tasks', 'TASK-feat.md'), emptyScopeTask);
+        git(['add', '.']);
+        git(['commit', '-m', 'init']);
+        const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+        const wt = join(repo, '.worktrees', 'feat-feat');
+        git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+        writeFileSync(join(wt, 'committed.ts'), 'a');
+        git(['add', 'committed.ts'], wt);
+        git(['commit', '-m', 'work'], wt);
+
+        const { code, err } = await capture(() => run(['TASK-feat', '--write'], repo));
+        expect(code).toBe(2);
+        expect(err).toContain('no scope');
+        expect(existsSync(draftPath())).toBe(false); // nothing written on the draft error
+    });
+
+    it('--write --json emits a machine record carrying status: draft and the path (AC-006 verdict-free)', async () => {
+        buildRun();
+        const { out, code } = await capture(() => run(['TASK-feat', '--write', '--json'], repo));
+        expect(code).toBe(0);
+        const parsed = JSON.parse(out);
+        expect(parsed.status).toBe('draft');
+        expect(parsed.path).toMatch(/reviews\/feat\.md$/);
+        // No verdict / merge decision field of its own.
+        for (const key of ['result', 'verdict', 'decision', 'suggestedDecision', 'mergeDecision']) {
+            expect(Object.keys(parsed)).not.toContain(key);
+        }
     });
 });
