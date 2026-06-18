@@ -49,6 +49,35 @@ function withTemplates(): void {
     writeFileSync(join(ws, 'templates', 'spec.md'), 'template\n');
 }
 
+// A change plan whose `preserves:` ref points at a spec id, parameterized so a test can break it.
+function changePlan(ref: string): string {
+    return `---
+type: change-plan
+id: CHANGE-x
+status: draft
+kind: schema-change
+preserves: [${ref}]
+---
+
+# Change Plan
+
+## Behavioral preservation guarantees
+
+| ID | Behavior | Verify with |
+|---|---|---|
+| ${ref} | thing | \`npm test -- a.spec.ts\` |
+
+## Transformation waves
+
+1. Move it. Green check: \`npm test -- a.spec.ts\`.
+`;
+}
+
+function writeChangePlan(name: string, content: string): void {
+    mkdirSync(join(ws, 'change-plans'), { recursive: true });
+    writeFileSync(join(ws, 'change-plans', `${name}.md`), content);
+}
+
 describe('check_workspace', () => {
     it('a clean workspace yields a clean verdict', () => {
         writeSpec('good', CONFORMANT);
@@ -150,5 +179,78 @@ describe('check_workspace', () => {
         const report = assertOk(check_workspace({ workspaceDir: ws }));
         expect(report.specs).toHaveLength(2);
         expect(report.workspaceFindings).toEqual([]); // distinct ids → no C002 collisions
+    });
+
+    // AC-006 — the workspace verdict folds change-plan files' C010/C011 findings.
+    it('an all-clean workspace with a valid change plan stays clean (AC-006)', () => {
+        writeSpec('good', CONFORMANT); // defines SPEC-good#AC-001
+        withTemplates();
+        writeChangePlan('move-it', changePlan('SPEC-good#AC-001'));
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.changePlans).toHaveLength(1);
+        expect(report.changePlans[0].diagnostics).toEqual([]);
+        expect(report.verdict).toBe('clean');
+        expect(report.level).toBe('clean');
+    });
+
+    it('an unresolved change-plan ref makes the repo verdict blocking (AC-006)', () => {
+        writeSpec('good', CONFORMANT); // SPEC-good defines AC-001, not AC-999
+        withTemplates();
+        writeChangePlan('move-it', changePlan('SPEC-good#AC-999'));
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.changePlans[0].diagnostics.map((d) => d.code)).toEqual(['C010']);
+        expect(report.changePlans[0].level).toBe('blocking');
+        expect(report.verdict).toBe('blocking');
+        expect(report.level).toBe('blocking');
+    });
+
+    it('a change plan with a C011 warning lifts the level to warning but keeps the verdict clean (AC-006)', () => {
+        writeSpec('good', CONFORMANT);
+        withTemplates();
+        // a migration plan whose only ref is a plan-local PG (C010 clean) but with empty waves (C011 warn)
+        writeChangePlan(
+            'warn-it',
+            `---
+type: change-plan
+id: CHANGE-w
+kind: migration
+preserves: [PG-001]
+---
+
+# Change Plan
+
+## Behavioral preservation guarantees
+
+| ID | Behavior | Verify with |
+|---|---|---|
+| PG-001 | local | \`t\` |
+
+## Transformation waves
+`
+        );
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.changePlans[0].diagnostics.map((d) => d.code)).toEqual(['C011']);
+        expect(report.verdict).toBe('clean'); // a warning does not block the merge
+        expect(report.level).toBe('warning');
+    });
+
+    it('ignores a non-change-plan file in change-plans/ (e.g. a README)', () => {
+        writeSpec('good', CONFORMANT);
+        withTemplates();
+        mkdirSync(join(ws, 'change-plans'), { recursive: true });
+        writeFileSync(join(ws, 'change-plans', 'README.md'), '# Change plans live here\n');
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.changePlans).toEqual([]);
+        expect(report.verdict).toBe('clean');
+    });
+
+    it('treats an unparseable change plan as blocking', () => {
+        writeSpec('good', CONFORMANT);
+        withTemplates();
+        // type: change-plan in the head, but no closing frontmatter fence → parse failure
+        writeChangePlan('broken', '---\ntype: change-plan\nid: X\nno closing fence\n');
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.changePlans[0].level).toBe('blocking');
+        expect(report.verdict).toBe('blocking');
     });
 });

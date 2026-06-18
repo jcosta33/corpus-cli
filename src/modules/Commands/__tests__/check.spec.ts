@@ -62,6 +62,95 @@ function writeSpec(name: string, content: string): string {
     return path;
 }
 
+// A spec the change plan's preserves-ref resolves against (SPEC-cart defines AC-001).
+const CART_SPEC = `---
+type: spec
+id: SPEC-cart
+status: ready
+sources:
+  - ADR-0077
+---
+
+## Requirements
+
+### AC-001 — submit
+The tool must submit it.
+Verify with: a test.
+
+## Non-goals
+
+- none
+
+## Open questions
+
+- none
+`;
+
+function changePlan(ref: string): string {
+    return `---
+type: change-plan
+id: CHANGE-x
+status: draft
+kind: schema-change
+preserves: [${ref}]
+---
+
+# Change Plan
+
+## Behavioral preservation guarantees
+
+| ID | Behavior | Verify with |
+|---|---|---|
+| ${ref} | thing | \`npm test -- a.spec.ts\` |
+
+## Transformation waves
+
+1. Move it. Green check: \`npm test -- a.spec.ts\`.
+`;
+}
+
+describe('check command — change-plan routing (C010/C011, AC-001/002)', () => {
+    it('a valid change plan (preserves-ref resolves against a sibling spec) → exit 0', async () => {
+        // sibling layout: change-plans/move/change-plan.md beside specs that resolve SPEC-cart
+        mkdirSync(join(dir, 'specs', 'cart'), { recursive: true });
+        writeFileSync(join(dir, 'specs', 'cart', 'spec.md'), CART_SPEC);
+        mkdirSync(join(dir, 'change-plans'), { recursive: true });
+        const planPath = join(dir, 'change-plans', 'change-plan.md');
+        writeFileSync(planPath, changePlan('SPEC-cart#AC-001'));
+        const { code, out } = await capture(() => run([planPath], dir));
+        expect(code).toBe(0);
+        expect(out).toContain('clean');
+    });
+
+    it('a change plan with an unresolvable preserves-ref → exit 2 (C010 hard-error)', async () => {
+        mkdirSync(join(dir, 'specs', 'cart'), { recursive: true });
+        writeFileSync(join(dir, 'specs', 'cart', 'spec.md'), CART_SPEC);
+        mkdirSync(join(dir, 'change-plans'), { recursive: true });
+        const planPath = join(dir, 'change-plans', 'change-plan.md');
+        writeFileSync(planPath, changePlan('SPEC-cart#AC-999'));
+        const { code, out } = await capture(() => run([planPath], dir));
+        expect(code).toBe(2);
+        expect(out).toContain('C010');
+    });
+
+    it('--json emits the change-plan check result', async () => {
+        mkdirSync(join(dir, 'change-plans'), { recursive: true });
+        const planPath = join(dir, 'change-plans', 'change-plan.md');
+        writeFileSync(planPath, changePlan('PG-001')); // plan-local PG → C010 clean
+        const { code, out } = await capture(() => run([planPath, '--json'], dir));
+        expect(code).toBe(0);
+        expect(JSON.parse(out)).toMatchObject({ level: 'clean', diagnostics: [] });
+    });
+
+    it('a type: spec file is unaffected (still runs the spec checks, not the change-plan checks)', async () => {
+        const file = writeSpec('still-a-spec', CONFORMANT);
+        const { code, out } = await capture(() => run([file], dir));
+        expect(code).toBe(0);
+        expect(out).toContain('clean');
+        expect(out).not.toContain('C010');
+    });
+});
+
 describe('check command (direct surface, AC-001/005)', () => {
     it('lints a conformant spec file → exit 0', async () => {
         const file = writeSpec('ok', CONFORMANT);

@@ -1,0 +1,134 @@
+import { describe, it, expect } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+import { assertOk } from '../../../infra/errors/testing/assertOk.ts';
+import { check_change_plan } from '../useCases/checkChangePlan.ts';
+import { build_spec_ref_resolver } from '../useCases/resolveSpecRef.ts';
+import { find_sibling_spec_files } from '../useCases/findSpecFiles.ts';
+
+const codes = (diagnostics: readonly { code: string }[]) => diagnostics.map((d) => d.code);
+
+// A minimal change plan in the canonical shape, parameterized so each variant test edits one field.
+function plan(opts: { kind?: string; preserves?: string; waves?: string; guarantees?: string } = {}): string {
+    const kind = opts.kind ?? 'schema-change';
+    const preserves = opts.preserves ?? '[SPEC-checkout#AC-002, SPEC-checkout#AC-003]';
+    const guarantees =
+        opts.guarantees ??
+        `| SPEC-checkout#AC-002 | order | \`npm test -- a.spec.ts\` |
+| SPEC-checkout#AC-003 | ledger | \`npm test -- b.spec.ts\` |
+| PG-001 | reconcile | \`npm test -- c.spec.ts\` |`;
+    const waves =
+        opts.waves ??
+        `1. Create the schema. Green check: \`npm test -- a.spec.ts\`.
+2. Cut over. Green check: \`npm test -- c.spec.ts\`.`;
+    return `---
+type: change-plan
+id: CHANGE-x
+status: draft
+kind: ${kind}
+preserves: ${preserves}
+---
+
+# Change Plan
+
+## Behavioral preservation guarantees
+
+| ID | Behavior | Verify with |
+|---|---|---|
+${guarantees}
+
+## Transformation waves
+
+${waves}
+`;
+}
+
+// SPEC-checkout defines AC-002 and AC-003 (the checkout fixture). The unit tests inject this
+// resolver directly so they do not depend on the filesystem.
+const checkoutResolver = (specId: string, acId: string) =>
+    specId === 'SPEC-checkout' && (acId === 'AC-002' || acId === 'AC-003');
+
+describe('check_change_plan — C010/C011 (AC-001/002/003)', () => {
+    it('a valid plan (refs resolve, PG-001 plan-local, waves named) is clean', () => {
+        const report = assertOk(check_change_plan({ source: plan(), path: 'p.md', spec_ref_resolves: checkoutResolver }));
+        expect(report.diagnostics).toEqual([]);
+        expect(report.level).toBe('clean');
+    });
+
+    it('AC-002: an unresolvable SPEC-checkout#AC-999 ref → one C010 hard-error → blocking', () => {
+        const report = assertOk(
+            check_change_plan({
+                source: plan({
+                    preserves: '[SPEC-checkout#AC-999]',
+                    guarantees: '| SPEC-checkout#AC-999 | nope | `t` |',
+                }),
+                path: 'p.md',
+                spec_ref_resolves: checkoutResolver,
+            })
+        );
+        // the same unresolved ref appears in preserves: and the table — reported once (deduped by raw)
+        expect(codes(report.diagnostics)).toEqual(['C010']);
+        expect(report.diagnostics[0].message).toContain('SPEC-checkout#AC-999');
+        expect(report.level).toBe('blocking');
+    });
+
+    it('AC-002: a PG-NNN plan-local id produces no C010 finding', () => {
+        const report = assertOk(
+            check_change_plan({
+                source: plan({ preserves: '[PG-001]', guarantees: '| PG-001 | local | `t` |' }),
+                path: 'p.md',
+                spec_ref_resolves: () => false,
+            })
+        );
+        expect(codes(report.diagnostics)).toEqual([]);
+    });
+
+    it('AC-003: a kind: migration plan with an empty waves section → one C011 warning', () => {
+        const report = assertOk(
+            check_change_plan({
+                source: plan({ kind: 'migration', waves: '' }),
+                path: 'p.md',
+                spec_ref_resolves: checkoutResolver,
+            })
+        );
+        expect(codes(report.diagnostics)).toEqual(['C011']);
+        expect(report.level).toBe('warning');
+    });
+
+    it('AC-003: a plan of another kind with an empty waves section is exempt (no C011)', () => {
+        const report = assertOk(
+            check_change_plan({
+                source: plan({ kind: 'refactor', waves: '' }),
+                path: 'p.md',
+                spec_ref_resolves: checkoutResolver,
+            })
+        );
+        expect(codes(report.diagnostics)).toEqual([]);
+        expect(report.level).toBe('clean');
+    });
+
+    it('returns Err for an unparseable change plan (no frontmatter fence)', () => {
+        const result = check_change_plan({ source: '# no fence\n', path: 'p.md', spec_ref_resolves: () => true });
+        expect(result.ok).toBe(false);
+    });
+});
+
+// AC-004: the frozen transformation fixture is the oracle — C010 pass, C011 pass (EXPECTED.md).
+// Reached the same way the contract drift-guard reaches the sibling swarm repo (../swarm from cwd);
+// skipped when the sibling is absent so swarm-cli stays hermetic.
+describe('check_change_plan reproduces the transformation fixture (AC-004)', () => {
+    const fixtureDir = resolve(process.cwd(), '../swarm/checks/fixtures/transformation');
+    const planPath = resolve(fixtureDir, 'change-plan.md');
+    const present = existsSync(planPath);
+
+    (present ? it : it.skip)('the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md)', () => {
+        const resolver = build_spec_ref_resolver(find_sibling_spec_files(planPath));
+        const report = assertOk(
+            check_change_plan({ source: readFileSync(planPath, 'utf8'), path: planPath, spec_ref_resolves: resolver })
+        );
+        expect(report.diagnostics.filter((d) => d.code === 'C010')).toEqual([]);
+        expect(report.diagnostics.filter((d) => d.code === 'C011')).toEqual([]);
+        expect(report.level).toBe('clean');
+    });
+});

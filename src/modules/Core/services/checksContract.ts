@@ -7,9 +7,9 @@
 //
 // These rule functions are PURE over a ParsedSpec record — the parser (Sol) extracts the structure;
 // this module owns the contract semantics (strength words, the Verify-line shape, link
-// classification). C009's filesystem check takes an injected `exists` predicate so it stays pure.
-// C002 (cross-file id collision) and C010/C011 (change-plan) are workspace/artifact-scope and live
-// with the workspace checker, not here.
+// classification). C009's filesystem check takes an injected `exists` predicate so it stays pure;
+// C010 takes an injected `spec_ref_resolves` predicate for the same reason (the engine reads the
+// workspace). C002 (cross-file id collision) is workspace-scope and lives with the workspace checker.
 
 import type { OutcomeLevel } from '../useCases/unixOutcome.ts';
 
@@ -318,6 +318,89 @@ export function coverage_facts(input: CoverageInput): CoverageFinding[] {
 
 export function check_coverage(input: CoverageInput): Diagnostic[] {
     return coverage_facts(input).map((finding) => diagnostic('C012', coverage_message(finding), null));
+}
+
+// --- C010 preserves-refs-resolve (change-plan, hard error) ---------------------------------------
+// Every id in a change plan's `preserves:` and Behavioral-preservation-guarantees table must
+// resolve: a `SPEC-x#AC-NNN` ref against the named spec (the spec exists and defines AC-NNN), or a
+// plan-local `PG-NNN` defined in the plan's own guarantees table. A `PG-NNN` (no spec id) is a
+// VALID plan-local id, not a failure (the guarantee was never specced — a spec amendment is owed).
+// Any other unresolvable id → one C010 hard-error citing the unresolved id.
+//
+// PURE: the parser extracts the ids; the engine injects `spec_ref_resolves` (does spec X define
+// AC-NNN?) so the filesystem stays out of this module (mirrors C009's injected `exists`).
+export type PreservesRef = Readonly<{
+    raw: string;
+    specId: string | null;
+    acId: string | null;
+    line: number | null;
+}>;
+
+export type PreservesRefsInput = Readonly<{
+    refs: readonly PreservesRef[];
+    // The ids defined in the plan's own guarantees table — a plan-local id (no spec) resolves here.
+    guaranteeIds: readonly string[];
+    // Whether the named spec exists and defines the anchor (injected; the engine reads the workspace).
+    spec_ref_resolves: (specId: string, acId: string) => boolean;
+}>;
+
+export function check_preserves_refs_resolve(input: PreservesRefsInput): Diagnostic[] {
+    const guaranteeSet = new Set(input.guaranteeIds);
+    const diagnostics: Diagnostic[] = [];
+    const seen = new Set<string>();
+    for (const ref of input.refs) {
+        if (seen.has(ref.raw)) {
+            continue;
+        }
+        seen.add(ref.raw);
+        if (ref.specId !== null && ref.acId !== null) {
+            // A cross-spec reference: resolve against the named spec.
+            if (!input.spec_ref_resolves(ref.specId, ref.acId)) {
+                diagnostics.push(diagnostic('C010', `preserved ref does not resolve: ${ref.raw}`, ref.line));
+            }
+            continue;
+        }
+        // A plan-local id: valid iff defined in the plan's own guarantees table.
+        if (!guaranteeSet.has(ref.raw)) {
+            diagnostics.push(diagnostic('C010', `preserved ref does not resolve: ${ref.raw}`, ref.line));
+        }
+    }
+    return diagnostics;
+}
+
+// --- C011 waves-present (change-plan, warning) ---------------------------------------------------
+// A change plan whose `kind` is migration / rewrite / schema-change must stage the move in waves,
+// each naming the green check that keeps the codebase green. Warn when the Transformation-waves
+// section is empty or any wave names no check/verify step. A plan of another kind is exempt (a
+// pure refactor or a mechanical cleanup needs no staged wave plan).
+// PURE: the parser extracts kind + the waves (each carrying whether it names a check).
+const WAVE_REQUIRED_KINDS = new Set(['migration', 'rewrite', 'schema-change']);
+
+export type Wave = Readonly<{ namesCheck: boolean; line: number | null }>;
+
+export type WavesPresentInput = Readonly<{
+    kind: string | null;
+    waves: readonly Wave[];
+}>;
+
+export function check_waves_present(input: WavesPresentInput): Diagnostic[] {
+    if (input.kind === null || !WAVE_REQUIRED_KINDS.has(input.kind)) {
+        return [];
+    }
+    if (input.waves.length === 0) {
+        return [diagnostic('C011', `a ${input.kind} change plan has an empty Transformation waves section`, null)];
+    }
+    if (input.waves.some((wave) => !wave.namesCheck)) {
+        const offender = input.waves.find((wave) => !wave.namesCheck);
+        return [
+            diagnostic(
+                'C011',
+                'a transformation wave names no green check that keeps the codebase green',
+                offender?.line ?? null
+            ),
+        ];
+    }
+    return [];
 }
 
 // --- The single-file runner + verdict ------------------------------------------------------------

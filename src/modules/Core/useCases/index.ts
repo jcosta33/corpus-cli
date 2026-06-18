@@ -6,10 +6,13 @@
 // The contract util (AC-001/002)
 export { project, emit_error, exit_code_for, no_workspace_error, usage_error } from './unixOutcome.ts';
 
-// check engine (AC-005/006/007/008); review-file C012 (M2 AC-028)
+// check engine (AC-005/006/007/008); review-file C012 (M2 AC-028); change-plan C010/C011 (W6)
 export { check_spec } from './checkSpec.ts';
 export { check_workspace } from './checkWorkspace.ts';
 export { check_review_file } from './checkReviewFile.ts';
+export { check_change_plan } from './checkChangePlan.ts';
+export { build_spec_ref_resolver } from './resolveSpecRef.ts';
+export { find_workspace_spec_files, find_sibling_spec_files } from './findSpecFiles.ts';
 
 // launch engine — worktrees, no agent (AC-009/010)
 export { create_worktree } from './createWorktree.ts';

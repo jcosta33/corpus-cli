@@ -4,3 +4,9 @@
 
 export { parse_spec_record } from './parseSpecRecord.ts';
 export { parse_task_packet, type TaskPacket } from './parseTaskPacket.ts';
+export {
+    parse_change_plan,
+    type ChangePlanRecord,
+    type PreservedRef,
+    type ChangePlanWave,
+} from './parseChangePlan.ts';

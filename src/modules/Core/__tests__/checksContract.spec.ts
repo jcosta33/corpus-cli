@@ -16,12 +16,15 @@ import {
     check_sources_named,
     check_broken_source_link,
     check_coverage,
+    check_preserves_refs_resolve,
+    check_waves_present,
     run_spec_checks,
     verdict_for,
     type ParsedSpec,
     type Requirement,
     type SpecFrontmatter,
     type Diagnostic,
+    type PreservesRef,
 } from '../services/checksContract.ts';
 
 function spec(
@@ -59,6 +62,7 @@ describe('severity_of', () => {
         expect(severity_of('C003')).toBe('hard-error');
         expect(severity_of('C004')).toBe('warning');
         expect(severity_of('C009')).toBe('hard-error');
+        expect(severity_of('C010')).toBe('hard-error');
         expect(severity_of('C011')).toBe('warning');
         expect(severity_of('C012')).toBe('warning');
     });
@@ -136,6 +140,93 @@ describe('C012 coverage (ADR-0079)', () => {
             coverageRowIds: ['AC-009', 'AC-009'],
         });
         expect(codes(diagnostics)).toEqual(['C012']);
+    });
+});
+
+describe('C010 preserves-refs-resolve (change-plan, AC-002)', () => {
+    const ref = (raw: string, specId: string | null = null, acId: string | null = null): PreservesRef => ({
+        raw,
+        specId,
+        acId,
+        line: 10,
+    });
+
+    it('resolves a SPEC-x#AC-NNN ref via the injected resolver, and flags an unresolvable one', () => {
+        const resolves = (specId: string, acId: string) => specId === 'SPEC-checkout' && acId === 'AC-002';
+        // a resolving cross-spec ref → no finding
+        expect(
+            check_preserves_refs_resolve({
+                refs: [ref('SPEC-checkout#AC-002', 'SPEC-checkout', 'AC-002')],
+                guaranteeIds: [],
+                spec_ref_resolves: resolves,
+            })
+        ).toEqual([]);
+        // an absent anchor (#AC-999) → one C010 hard-error citing the ref
+        const missing = check_preserves_refs_resolve({
+            refs: [ref('SPEC-checkout#AC-999', 'SPEC-checkout', 'AC-999')],
+            guaranteeIds: [],
+            spec_ref_resolves: resolves,
+        });
+        expect(codes(missing)).toEqual(['C010']);
+        expect(missing[0].severity).toBe('hard-error');
+        expect(missing[0].message).toContain('SPEC-checkout#AC-999');
+        expect(missing[0].line).toBe(10);
+    });
+
+    it('treats a PG-NNN defined in the guarantees table as a valid plan-local id (no finding)', () => {
+        expect(
+            check_preserves_refs_resolve({
+                refs: [ref('PG-001')],
+                guaranteeIds: ['PG-001'],
+                spec_ref_resolves: () => false,
+            })
+        ).toEqual([]);
+    });
+
+    it('flags a plan-local id that is NOT defined in the guarantees table', () => {
+        const diagnostics = check_preserves_refs_resolve({
+            refs: [ref('PG-404')],
+            guaranteeIds: ['PG-001'],
+            spec_ref_resolves: () => false,
+        });
+        expect(codes(diagnostics)).toEqual(['C010']);
+        expect(diagnostics[0].message).toContain('PG-404');
+    });
+
+    it('reports a duplicated unresolvable ref only once', () => {
+        const diagnostics = check_preserves_refs_resolve({
+            refs: [ref('PG-404'), ref('PG-404')],
+            guaranteeIds: [],
+            spec_ref_resolves: () => false,
+        });
+        expect(codes(diagnostics)).toEqual(['C010']);
+    });
+});
+
+describe('C011 waves-present (change-plan, AC-003)', () => {
+    const wave = (namesCheck: boolean, line: number | null = 20) => ({ namesCheck, line });
+
+    it('warns when a wave-required kind has an empty Transformation waves section', () => {
+        const diagnostics = check_waves_present({ kind: 'migration', waves: [] });
+        expect(codes(diagnostics)).toEqual(['C011']);
+        expect(diagnostics[0].severity).toBe('warning');
+        expect(diagnostics[0].message).toContain('migration');
+    });
+
+    it('warns when a wave names no green check, citing the offending wave line', () => {
+        const diagnostics = check_waves_present({ kind: 'rewrite', waves: [wave(true, 20), wave(false, 25)] });
+        expect(codes(diagnostics)).toEqual(['C011']);
+        expect(diagnostics[0].line).toBe(25);
+    });
+
+    it('passes a wave-required kind whose waves each name a check', () => {
+        expect(check_waves_present({ kind: 'schema-change', waves: [wave(true), wave(true)] })).toEqual([]);
+    });
+
+    it('exempts a plan of another kind, and a plan with no kind', () => {
+        expect(check_waves_present({ kind: 'refactor', waves: [] })).toEqual([]);
+        expect(check_waves_present({ kind: 'mechanical-cleanup', waves: [wave(false)] })).toEqual([]);
+        expect(check_waves_present({ kind: null, waves: [] })).toEqual([]);
     });
 });
 

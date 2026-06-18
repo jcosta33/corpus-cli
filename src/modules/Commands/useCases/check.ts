@@ -9,7 +9,17 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 
-import { check_spec, check_workspace, check_review_file, project, usage_error } from '../../Core/useCases/index.ts';
+import {
+    check_spec,
+    check_workspace,
+    check_review_file,
+    check_change_plan,
+    build_spec_ref_resolver,
+    find_workspace_spec_files,
+    find_sibling_spec_files,
+    project,
+    usage_error,
+} from '../../Core/useCases/index.ts';
 import { err } from '../../../infra/errors/result.ts';
 import { parse_flags } from '../../Terminal/useCases/index.ts';
 import {
@@ -49,11 +59,23 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
             });
         }
         const source = readFileSync(file, 'utf8');
+        const head = source.split(/\r\n|[\r\n]/).slice(0, 12).join('\n');
         // A review packet (`type: review`) runs the C012 coverage reconcile (AC-028); a spec runs the
         // core spec checks. The review path resolves the task + source spec from the cwd workspace.
-        if (/^type:\s*review\s*$/m.test(source.split(/\r\n|[\r\n]/).slice(0, 12).join('\n'))) {
+        if (/^type:\s*review\s*$/m.test(head)) {
             return project({
                 result: check_review_file({ workspaceDir: cwd, reviewPath: file }),
+                json,
+                render: format_check_report,
+            });
+        }
+        // A change plan (`type: change-plan`) runs C010/C011 (W6). C010 resolves `SPEC-x#AC-NNN` refs
+        // against the candidate specs — the cwd workspace's specs/ tree plus the plan's sibling specs
+        // (the fixture layout). A `type: spec` file falls through to the spec checks, unaffected.
+        if (/^type:\s*change-plan\s*$/m.test(head)) {
+            const specFiles = [...find_workspace_spec_files(cwd), ...find_sibling_spec_files(file)];
+            return project({
+                result: check_change_plan({ source, path: file, spec_ref_resolves: build_spec_ref_resolver(specFiles) }),
                 json,
                 render: format_check_report,
             });

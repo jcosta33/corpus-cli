@@ -12,6 +12,8 @@ import { ok, isOk, type Result } from '../../../infra/errors/result.ts';
 import type { AppError } from '../../../infra/errors/createAppError.ts';
 import { parse_spec_record } from '../../Sol/useCases/index.ts';
 import { run_spec_checks, verdict_for, type Diagnostic } from '../services/checksContract.ts';
+import { check_change_plan } from './checkChangePlan.ts';
+import { build_spec_ref_resolver } from './resolveSpecRef.ts';
 import type { OutcomeLevel } from './unixOutcome.ts';
 
 export type WorkspaceFinding = Readonly<{
@@ -29,6 +31,9 @@ export type WorkspaceCheckReport = Readonly<{
     level: OutcomeLevel;
     verdict: 'clean' | 'blocking';
     specs: readonly WorkspaceSpecResult[];
+    // The change-plan files' C010/C011 results, folded into the repo verdict alongside the specs
+    // (AC-006). Shares the WorkspaceSpecResult shape (path + level + diagnostics).
+    changePlans: readonly WorkspaceSpecResult[];
     workspaceFindings: readonly WorkspaceFinding[];
 }>;
 
@@ -54,6 +59,23 @@ function find_spec_files(workspaceDir: string): string[] {
         }
     }
     return out.sort();
+}
+
+// The change-plan files under `<workspaceDir>/change-plans/` (sorted). Change plans live at the
+// workspace root's `change-plans/` dir (kit layout); only `type: change-plan` files run C010/C011.
+function find_change_plan_files(workspaceDir: string): string[] {
+    const dir = join(workspaceDir, 'change-plans');
+    if (!existsSync(dir)) {
+        return [];
+    }
+    const out: string[] = [];
+    for (const entry of readdirSync(dir).sort()) {
+        const path = join(dir, entry);
+        if (entry.endsWith('.md') && existsSync(path) && /^type:\s*change-plan\s*$/m.test(readFileSync(path, 'utf8').split(/\r\n|[\r\n]/).slice(0, 12).join('\n'))) {
+            out.push(path);
+        }
+    }
+    return out;
 }
 
 function workspace_validity(workspaceDir: string): WorkspaceFinding[] {
@@ -119,8 +141,32 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
         }
     }
 
-    const hasBlocking = findings.length > 0 || specs.some((spec) => spec.level === 'blocking');
-    const hasWarning = specs.some((spec) => spec.level === 'warning');
+    // Change plans (AC-006): run C010/C011 over each `change-plans/*.md`. A `SPEC-x#AC-NNN` ref
+    // resolves against the same workspace specs/ tree the spec checks read; the resolver is built
+    // once over all spec files (a workspace-wide index). Folded into the repo verdict — a blocking
+    // C010 makes the verdict blocking.
+    const resolveSpecRef = build_spec_ref_resolver(specFiles);
+    const changePlans: WorkspaceSpecResult[] = [];
+    for (const planPath of find_change_plan_files(input.workspaceDir)) {
+        const report = check_change_plan({
+            source: readFileSync(planPath, 'utf8'),
+            path: planPath,
+            spec_ref_resolves: resolveSpecRef,
+        });
+        changePlans.push(
+            isOk(report)
+                ? report.value
+                : // A change plan that does not parse is itself blocking for the repo verdict.
+                  { path: planPath, level: 'blocking', diagnostics: [] }
+        );
+    }
+
+    const hasBlocking =
+        findings.length > 0 ||
+        specs.some((spec) => spec.level === 'blocking') ||
+        changePlans.some((plan) => plan.level === 'blocking');
+    const hasWarning =
+        specs.some((spec) => spec.level === 'warning') || changePlans.some((plan) => plan.level === 'warning');
     let level: OutcomeLevel = 'clean';
     if (hasBlocking) {
         level = 'blocking';
@@ -128,5 +174,11 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
         level = 'warning';
     }
 
-    return ok({ level, verdict: hasBlocking ? 'blocking' : 'clean', specs, workspaceFindings: findings });
+    return ok({
+        level,
+        verdict: hasBlocking ? 'blocking' : 'clean',
+        specs,
+        changePlans,
+        workspaceFindings: findings,
+    });
 }

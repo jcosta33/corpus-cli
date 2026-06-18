@@ -46,16 +46,26 @@ export function format_check_report(report: {
 export function format_workspace_report(report: {
     level: RenderLevel;
     specs: readonly { path: string; level: RenderLevel }[];
+    changePlans?: readonly { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }[];
     workspaceFindings: readonly { code: string; message: string }[];
 }): string {
+    const changePlans = report.changePlans ?? [];
     // Render the 3-way severity (clean / warning / blocking), not the binary merge `verdict`, so a
     // warnings-only workspace shows "⚠ warning" (exit 1) instead of a misleading "✓ clean".
     const lines = [
-        `Workspace verdict: ${format_verdict(report.level)}  ${color.dim(`${String(report.specs.length)} specs`)}`,
+        `Workspace verdict: ${format_verdict(report.level)}  ${color.dim(`${String(report.specs.length)} specs, ${String(changePlans.length)} change plans`)}`,
         '',
     ];
     for (const spec of report.specs) {
         lines.push(`  ${format_verdict(spec.level)}  ${spec.path}`);
+    }
+    // Change plans (C010/C011) fold into the same verdict; show each plan's level and its findings so
+    // a blocking C010 is visible, not just reflected in the aggregate verdict.
+    for (const plan of changePlans) {
+        lines.push(`  ${format_verdict(plan.level)}  ${plan.path}`);
+        for (const diagnostic of plan.diagnostics) {
+            lines.push(format_diagnostic(diagnostic));
+        }
     }
     for (const finding of report.workspaceFindings) {
         lines.push(`  ${color.red('✗')}  ${color.bold(finding.code)}  ${finding.message}`);
