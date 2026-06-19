@@ -16,6 +16,12 @@ export function parse_flags(
 
     for (let i = 0; i < argv.length; i++) {
         const arg = argv[i];
+        if (arg === '--') {
+            // End-of-options: every remaining token is positional, even one that starts with `-`
+            // (so a positional whose value begins with a dash can be passed after `--`).
+            positional.push(...argv.slice(i + 1));
+            break;
+        }
         const eq = arg.indexOf('=');
         if (arg.startsWith('--') && eq > -1) {
             const flagKey = arg.slice(2, eq);

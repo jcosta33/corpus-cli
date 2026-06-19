@@ -12,6 +12,12 @@ describe('parse_flags', () => {
         expect(flags.get('json')).toBe(true);
     });
 
+    it('treats every token after a bare `--` as positional, even a dash-leading one (#25)', () => {
+        const { positional, flags } = parse_flags(['run', '--', '--base', '-x'], SPEC);
+        expect(positional).toEqual(['run', '--base', '-x']);
+        expect(flags.size).toBe(0);
+    });
+
     it('a boolean flag never swallows the following positional', () => {
         const { positional, flags } = parse_flags(['--json', 'spec.md'], SPEC);
         expect(flags.get('json')).toBe(true);

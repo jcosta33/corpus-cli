@@ -313,6 +313,13 @@ describe('review command — the boundary (AC-023/025/026)', () => {
         expect(code).toBe(2);
         expect(err).toContain('--agent');
     });
+
+    it('rejects --agent in the equals form too (#25)', async () => {
+        buildRun({ reviewRows: '| AC-001 | Pass | p | no |' });
+        const { code, err } = await capture(() => run(['TASK-feat', '--agent=x'], repo));
+        expect(code).toBe(2);
+        expect(err).toContain('--agent');
+    });
 });
 
 describe('review command — never prompts under --json / non-TTY (AC-027)', () => {

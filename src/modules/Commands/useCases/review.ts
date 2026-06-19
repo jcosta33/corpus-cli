@@ -47,8 +47,10 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     const task = positional[0];
 
     // AC-026: `--agent` is reserved for M3 (agent-assisted evidence). M2 is the mechanical reconcile —
-    // reject it rather than silently ignoring the flag, so it is not a recognized M2 invocation.
-    if (argv.includes('--agent')) {
+    // reject it rather than silently ignoring the flag, so it is not a recognized M2 invocation. Catch
+    // both the space form (`--agent x`) and the equals form (`--agent=x`) — the latter is a distinct
+    // argv element that `includes('--agent')` would miss (#25).
+    if (argv.some((a) => a === '--agent' || a.startsWith('--agent='))) {
         return emit_error(usage_error('`swarm review --agent` is not available — M2 is the mechanical reconcile'), json);
     }
 
