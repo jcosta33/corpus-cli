@@ -14,9 +14,22 @@ import { createAppError, type AppError } from '../../../infra/errors/createAppEr
 
 export type LaunchError = AppError<'LaunchFailed', { command: string; detail: string }>;
 
-// The launch-envelope run record (AC-004): the facts `swarm review` reads as the recorded start point.
-// The agent's structured event stream (changed_files[]/commands[]) is a deferred milestone (D1) — this
-// is the envelope only.
+// The delegation-provenance block (ADR-0088): the trace fields `swarm run` knows when it launches a
+// worker — a record, never a verdict (ADR-0077 Decision 8). The contract's fuller fields (the worker's
+// inputs/filtered-context/tools/evidence) come from the in-session SubagentStart/Stop hook producer,
+// not this interactive launcher, which sees only what it launched and how it exited.
+export type RunProvenance = Readonly<{
+    worker: string; // the adapter/worker launched
+    reason: string; // the task it was delegated
+    isolation: 'worktree'; // `swarm run` always launches in the task's git worktree
+    could_edit: boolean; // the launched agent can write in the worktree (interactive, unrestricted)
+    exit: number; // the worker's exit, recorded as a fact
+}>;
+
+// The launch run record (AC-004 / ADR-0088): the facts `swarm review` reads as the recorded start
+// point, plus the delegation-provenance block (ADR-0088 producer 1). The agent's full event stream
+// (changed_files[]/commands[]) stays a deferred milestone (D1); `provenance` is additive and optional,
+// so a record written before it stays valid.
 export type RunRecord = Readonly<{
     task_id: string;
     adapter: string;
@@ -24,6 +37,7 @@ export type RunRecord = Readonly<{
     branch: string | null;
     source: string | null;
     exit: number;
+    provenance?: RunProvenance;
 }>;
 
 /**

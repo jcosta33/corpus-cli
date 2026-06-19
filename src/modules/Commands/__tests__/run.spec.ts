@@ -214,6 +214,19 @@ describe('swarm run — launch (AC-001/002/004)', () => {
             source: 'SPEC-feat',
             exit: 0,
         });
+        // The delegation-provenance block (ADR-0088 producer 1): a record of what was launched, and
+        // verdict-free — no result/verdict/pass field rides along (ADR-0077 D8 / PG-001).
+        expect(record.provenance).toEqual({
+            worker: 'stub',
+            reason: 'TASK-feat',
+            isolation: 'worktree',
+            could_edit: true,
+            exit: 0,
+        });
+        for (const key of ['result', 'verdict', 'status', 'decision']) {
+            expect(Object.keys(record)).not.toContain(key);
+            expect(Object.keys(record.provenance)).not.toContain(key);
+        }
     });
 });
 

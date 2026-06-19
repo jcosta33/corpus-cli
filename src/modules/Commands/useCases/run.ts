@@ -71,6 +71,16 @@ export function run(argv: string[], cwd: string = process.cwd()): number {
         branch,
         source,
         exit,
+        // The delegation-provenance block (ADR-0088 producer 1): a record of what was launched, never a
+        // verdict. The launcher knows the worker, the task it was delegated, the worktree isolation, and
+        // the exit; it does not restrict the agent's tools, so an interactive run could edit the worktree.
+        provenance: {
+            worker: adapter.name,
+            reason: task,
+            isolation: 'worktree',
+            could_edit: true,
+            exit,
+        },
     };
     const written = write_run_record(repoRoot, record);
 
