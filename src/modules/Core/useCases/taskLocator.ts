@@ -62,6 +62,9 @@ export function resolve_worktree(repoRoot: string, specSlug: string, taskId: str
     if (direct !== undefined) {
         return direct;
     }
-    const matches = list.filter((entry) => entry.branch !== null && entry.branch.split('/').pop() === taskSlug);
+    const matches = list.filter(
+        (entry) =>
+            entry.branch !== null && entry.branch.startsWith('swarm/') && entry.branch.split('/').pop() === taskSlug
+    );
     return matches.length === 1 ? matches[0] : null;
 }

@@ -169,6 +169,17 @@ describe('resolve_review_run (AC-017)', () => {
         expect(resolved.diffChangedFiles).toContain('changed.ts');
     });
 
+    it('does NOT fall back to a NON-swarm branch whose tail matches the slug (#24)', () => {
+        scaffold({ withWorktree: false }); // no swarm/feat/feat worktree
+        const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+        const wt = join(repo, '.worktrees', 'feature-feat');
+        git(['worktree', 'add', '-b', 'feature/feat', wt, base]); // a non-swarm branch whose tail is 'feat'
+        writeFileSync(join(wt, 'changed.ts'), 'x');
+        // The fallback is restricted to swarm/* branches, so this unrelated worktree is not used.
+        const error = assertErr(resolve_review_run({ workspaceDir: repo, repoRoot: repo, task: 'TASK-feat' }));
+        expect(error).toBeDefined();
+    });
+
     it('Errs when the base ref does not exist (the diff fails)', () => {
         scaffold({});
         const error = assertErr(

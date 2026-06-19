@@ -45,7 +45,7 @@ export function format_check_report(report: {
 
 export function format_workspace_report(report: {
     level: RenderLevel;
-    specs: readonly { path: string; level: RenderLevel }[];
+    specs: readonly { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }[];
     changePlans?: readonly { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }[];
     workspaceFindings: readonly { code: string; message: string }[];
 }): string {
@@ -58,6 +58,12 @@ export function format_workspace_report(report: {
     ];
     for (const spec of report.specs) {
         lines.push(`  ${format_verdict(spec.level)}  ${spec.path}`);
+        // Show each spec's diagnostics (which check failed, at which line) — the gate's human surface,
+        // matching the change-plan branch below and the --json envelope; otherwise a `✗ blocking spec`
+        // gives the reviewer no way to see the defect without re-running per file (#37).
+        for (const diagnostic of spec.diagnostics) {
+            lines.push(format_diagnostic(diagnostic));
+        }
     }
     // Change plans (C010/C011) fold into the same verdict; show each plan's level and its findings so
     // a blocking C010 is visible, not just reflected in the aggregate verdict.

@@ -310,9 +310,12 @@ export function coverage_facts(input: CoverageInput): CoverageFinding[] {
     const coveredSet = new Set(input.coverageRowIds);
     const findings: CoverageFinding[] = [];
 
-    // uncovered: an in-scope id with no coverage row.
+    // uncovered: an in-scope id with no coverage row. Deduped per id (a scope list that names the same
+    // id twice surfaces it once), mirroring the orphan branch below (#32).
+    const seenUncovered = new Set<string>();
     for (const id of input.inScopeIds) {
-        if (!coveredSet.has(id)) {
+        if (!coveredSet.has(id) && !seenUncovered.has(id)) {
+            seenUncovered.add(id);
             findings.push({ id, kind: 'uncovered' });
         }
     }
@@ -433,6 +436,17 @@ export function verify_binding_facts(input: VerifyBindingInput): VerifyBindingFi
             findings.push({ id, kind: 'duplicate' });
         }
     }
+    // A keyed malformed block is surfaced regardless of its row's result, once per id — AC-004 + the
+    // canon require it not be silently dropped, and this restores parity with `duplicate` above (the
+    // `(unkeyed)` malformed block is already surfaced in the indexing loop). The Pass-row loop below
+    // therefore no longer re-emits malformed (#32).
+    const seenMalformed = new Set<string>();
+    for (const [id, blocks] of blocksById) {
+        if (blocks.some((block) => block.malformed) && !seenMalformed.has(id)) {
+            seenMalformed.add(id);
+            findings.push({ id, kind: 'malformed' });
+        }
+    }
 
     for (const row of input.coverageRows) {
         if (row.result !== 'Pass') {
@@ -444,10 +458,10 @@ export function verify_binding_facts(input: VerifyBindingInput): VerifyBindingFi
             findings.push({ id: row.id, kind: 'free-form-only' });
             continue;
         }
-        // The first keyed block backs the row (a duplicate is already surfaced above).
+        // The first keyed block backs the row (duplicate + malformed are already surfaced above,
+        // unconditionally, so a malformed block here is skipped rather than re-emitted).
         const block = blocks[0];
         if (block.malformed) {
-            findings.push({ id: row.id, kind: 'malformed' });
             continue;
         }
         if (block.result === 'fail') {

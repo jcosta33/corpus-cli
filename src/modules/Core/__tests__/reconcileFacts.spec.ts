@@ -148,6 +148,12 @@ describe('packet_structural_facts (AC-021)', () => {
         ).toBe(true);
     });
 
+    it('flags status: pass with ZERO coverage rows as contradicted (a vacuous pass) (#32)', () => {
+        expect(packet_structural_facts(packet({ status: 'pass', coverageRows: [] })).statusPassContradicted).toBe(
+            true
+        );
+    });
+
     it('flags a missing required section', () => {
         expect(
             packet_structural_facts(

@@ -16,6 +16,7 @@ import {
     check_sources_named,
     check_broken_source_link,
     check_coverage,
+    coverage_facts,
     check_verify_binding,
     verify_binding_facts,
     normalize_cmd,
@@ -246,6 +247,17 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         expect(
             verify_binding_facts(
                 base({ verifyBlocks: [{ id: 'AC-001', cmd: null, result: 'pass', malformed: true }] })
+            )
+        ).toEqual([{ id: 'AC-001', kind: 'malformed' }]);
+    });
+
+    it('a keyed malformed block on a NON-Pass row is still surfaced, not dropped (#32, AC-004)', () => {
+        expect(
+            verify_binding_facts(
+                base({
+                    coverageRows: [{ id: 'AC-001', result: 'Fail' }],
+                    verifyBlocks: [{ id: 'AC-001', cmd: null, result: null, malformed: true }],
+                })
             )
         ).toEqual([{ id: 'AC-001', kind: 'malformed' }]);
     });
@@ -587,5 +599,21 @@ describe('drift guard against the sibling swarm/checks/checks.yaml', () => {
             const row = new RegExp(`id:\\s*${check.id},\\s*name:\\s*${check.name},\\s*severity:\\s*${check.severity}`);
             expect(text).toMatch(row);
         }
+    });
+});
+
+describe('coverage_facts — uncovered dedup (#32)', () => {
+    it('a scope list naming the same in-scope id twice surfaces one uncovered finding', () => {
+        expect(
+            coverage_facts({
+                sourceSpecStatus: 'ready',
+                inScopeIds: ['AC-001', 'AC-001', 'AC-002'],
+                specRequirementIds: ['AC-002'],
+                coverageRowIds: [],
+            })
+        ).toEqual([
+            { id: 'AC-001', kind: 'uncovered' },
+            { id: 'AC-002', kind: 'uncovered' },
+        ]);
     });
 });

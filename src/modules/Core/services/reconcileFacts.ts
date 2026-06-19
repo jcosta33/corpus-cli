@@ -131,8 +131,11 @@ export function packet_structural_facts(packet: ReviewPacket): PacketStructuralF
 
     const badResultCells = packet.coverageRows.filter((row) => !resultSet.has(row.result)).map((row) => row.id);
     const badStatus = packet.status !== null && !statusSet.has(packet.status) ? packet.status : null;
+    // A `status: pass` must be backed by at least one row and every row Pass. Zero rows is a vacuous
+    // pass (no evidence at all) — strictly worse than one non-Pass row — so it is also a contradiction (#32).
     const statusPassContradicted =
-        packet.status === 'pass' && packet.coverageRows.some((row) => row.result !== 'Pass');
+        packet.status === 'pass' &&
+        (packet.coverageRows.length === 0 || packet.coverageRows.some((row) => row.result !== 'Pass'));
     const missingSections = REQUIRED_REVIEW_SECTIONS.filter(
         (section) => !sectionSet.has(section.toLowerCase())
     );

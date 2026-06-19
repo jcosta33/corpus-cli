@@ -146,4 +146,21 @@ describe('show_artifact', () => {
         expect(isErr(show_artifact({ workspaceDir: ws, kind: 'spec' }))).toBe(true);
         expect(isErr(show_artifact({ workspaceDir: ws, kind: 'review' }))).toBe(true);
     });
+
+    it('confines reads to the workspace — a valid spec OUTSIDE the workspace is refused, not read (#42)', () => {
+        const root = mkdtempSync(join(tmpdir(), 'swarm-show-root-'));
+        try {
+            const inner = join(root, 'ws');
+            mkdirSync(inner, { recursive: true });
+            writeFileSync(join(root, 'secret.md'), SPEC); // a VALID spec outside the workspace
+            // Without confinement, `../secret.md` would resolve + read + project the outside file.
+            expect(isErr(show_artifact({ workspaceDir: inner, kind: 'spec', ref: '../secret.md' }))).toBe(true);
+            // Defense-in-depth on the stem forms (a `/` or `..` is rejected before the read).
+            expect(isErr(show_artifact({ workspaceDir: inner, kind: 'task', ref: '../evil' }))).toBe(true);
+            expect(isErr(show_artifact({ workspaceDir: inner, kind: 'review', ref: '../../evil' }))).toBe(true);
+            expect(isErr(show_artifact({ workspaceDir: inner, kind: 'spec', ref: '/etc/passwd' }))).toBe(true);
+        } finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
 });

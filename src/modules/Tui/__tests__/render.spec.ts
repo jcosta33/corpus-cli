@@ -64,23 +64,43 @@ describe('format_check_report', () => {
 describe('format_workspace_report', () => {
     it('renders the 3-way severity header from level (clean / warning / blocking)', () => {
         expect(
-            format_workspace_report({ level: 'clean', specs: [{ path: 'a', level: 'clean' }], workspaceFindings: [] })
+            format_workspace_report({
+                level: 'clean',
+                specs: [{ path: 'a', level: 'clean', diagnostics: [] }],
+                workspaceFindings: [],
+            })
         ).toContain('clean');
         // a warnings-only workspace shows "warning", never a misleading "clean" header (it exits 1)
         const warning = format_workspace_report({
             level: 'warning',
-            specs: [{ path: 'w', level: 'warning' }],
+            specs: [{ path: 'w', level: 'warning', diagnostics: [] }],
             workspaceFindings: [],
         });
         expect(warning).toContain('warning');
         expect(warning).not.toContain('clean');
         const blocking = format_workspace_report({
             level: 'blocking',
-            specs: [{ path: 'b', level: 'blocking' }],
+            specs: [{ path: 'b', level: 'blocking', diagnostics: [] }],
             workspaceFindings: [{ code: 'placeholder', message: 'unfilled' }],
         });
         expect(blocking).toContain('blocking');
         expect(blocking).toContain('placeholder');
+    });
+
+    it('renders each spec’s diagnostics (which check, which line) — the gate human surface (#37)', () => {
+        const out = format_workspace_report({
+            level: 'blocking',
+            specs: [
+                {
+                    path: 'specs/x/spec.md',
+                    level: 'blocking',
+                    diagnostics: [{ code: 'C003', severity: 'hard-error', message: 'no Verify line', line: 11 }],
+                },
+            ],
+            workspaceFindings: [],
+        });
+        expect(out).toContain('C003');
+        expect(out).toContain('11');
     });
 });
 

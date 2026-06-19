@@ -4,11 +4,12 @@
 // second source of truth), writes nothing, and renders no verdict. One use-case dispatching on kind.
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, relative, isAbsolute } from 'path';
 
 import { ok, err, isErr, type Result } from '../../../infra/errors/result.ts';
 import type { AppError } from '../../../infra/errors/createAppError.ts';
 import { parse_task_packet, parse_spec_record } from '../../Sol/useCases/index.ts';
+import { is_safe_segment } from '../services/safeSegment.ts';
 import { parse_review_packet } from '../services/parseReviewPacket.ts';
 import { CORE_CHECKS, CONTRACT_VERSION } from '../services/checksContract.ts';
 import { frontmatter_value, find_source_spec } from './taskLocator.ts';
@@ -23,6 +24,14 @@ export type ShowResult = Readonly<{ level: 'clean'; kind: ShowKind; value: unkno
 
 export type ShowArtifactInput = Readonly<{ workspaceDir: string; kind: string; ref?: string }>;
 
+// A workspace-relative spec ref is confined iff resolving it against the workspace stays inside it
+// (no `../` escape, no absolute path). The task/review stems use the stricter is_safe_segment; the
+// spec path-fallback may carry subdirectories (specs/foo/spec.md), so it uses this path check (#42).
+function is_confined(workspaceDir: string, ref: string): boolean {
+    const rel = relative(resolve(workspaceDir), resolve(workspaceDir, ref));
+    return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+}
+
 export function show_artifact(input: ShowArtifactInput): Result<ShowResult, AppError> {
     const { workspaceDir, kind, ref } = input;
 
@@ -34,6 +43,9 @@ export function show_artifact(input: ShowArtifactInput): Result<ShowResult, AppE
     if (kind === 'task') {
         if (ref === undefined) {
             return err(usage_error('usage: swarm show task <stem>'));
+        }
+        if (!is_safe_segment(ref)) {
+            return err(usage_error(`invalid task stem: ${ref}`));
         }
         const path = join(workspaceDir, 'tasks', `${ref}.md`);
         if (!existsSync(path)) {
@@ -60,8 +72,12 @@ export function show_artifact(input: ShowArtifactInput): Result<ShowResult, AppE
         if (ref === undefined) {
             return err(usage_error('usage: swarm show spec <id|path>'));
         }
-        // Resolve by frontmatter id (the documented form), else treat the ref as a workspace path.
+        // Resolve by frontmatter id (the documented form), else treat the ref as a workspace-relative
+        // path — confined to the workspace so a `../` ref cannot read a file outside it.
         const byId = find_source_spec(workspaceDir, ref);
+        if (byId === null && !is_confined(workspaceDir, ref)) {
+            return err(usage_error(`cannot resolve spec: ${ref}`));
+        }
         const path = byId !== null ? byId.path : join(workspaceDir, ref);
         if (!existsSync(path)) {
             return err(usage_error(`cannot resolve spec: ${ref}`));
@@ -88,6 +104,9 @@ export function show_artifact(input: ShowArtifactInput): Result<ShowResult, AppE
     if (kind === 'review') {
         if (ref === undefined) {
             return err(usage_error('usage: swarm show review <stem>'));
+        }
+        if (!is_safe_segment(ref)) {
+            return err(usage_error(`invalid review stem: ${ref}`));
         }
         const path = join(workspaceDir, 'reviews', `${ref}.md`);
         if (!existsSync(path)) {

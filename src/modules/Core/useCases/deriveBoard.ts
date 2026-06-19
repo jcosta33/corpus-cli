@@ -59,6 +59,7 @@ function read_md_frontmatters(dir: string): Frontmatter[] {
         return [];
     }
     return readdirSync(dir)
+        .sort() // deterministic order: a task with two reviews must not depend on readdir order (#26)
         .filter((name) => name.endsWith('.md'))
         .map((name) => read_frontmatter(readFileSync(join(dir, name), 'utf8')));
 }
@@ -94,8 +95,13 @@ export function derive_board(input: DeriveBoardInput): Result<DerivedBoard, AppE
         if (reviewTask !== undefined) {
             reviewStatusByTask.set(reviewTask, reviewStatus ?? 'draft');
         }
-        if (reviewStatus !== undefined && ATTENTION_STATUSES.has(reviewStatus) && reviewTask !== undefined) {
-            needsHuman.push(reviewTask);
+        if (
+            reviewStatus !== undefined &&
+            ATTENTION_STATUSES.has(reviewStatus) &&
+            reviewTask !== undefined &&
+            !needsHuman.includes(reviewTask)
+        ) {
+            needsHuman.push(reviewTask); // deduped: two attention-status reviews for one task flag it once (#26)
         }
     }
 

@@ -49,6 +49,15 @@ describe('derive_board', () => {
         expect(board.needsHuman).toEqual(['TASK-1']);
     });
 
+    it('dedupes needsHuman when one task has two attention-status reviews (#26)', () => {
+        spec('feat', 'type: spec\nid: SPEC-feat\nstatus: ready');
+        packet('tasks', 't1.md', 'type: task\nid: TASK-1\nsource: SPEC-feat\nstatus: review-ready');
+        packet('reviews', 'r1.md', 'type: review\nid: REV-1\ntask: TASK-1\nstatus: needs-human');
+        packet('reviews', 'r2.md', 'type: review\nid: REV-2\ntask: TASK-1\nstatus: blocked');
+        const board = assertOk(derive_board({ workspaceDir: ws }));
+        expect(board.needsHuman).toEqual(['TASK-1']); // flagged once, not ['TASK-1', 'TASK-1']
+    });
+
     it('links a task whose `source` is a block list (the canonical task format) to its spec', () => {
         spec('feat', 'type: spec\nid: SPEC-feat\nstatus: ready');
         // The kit task template + cut_packet write source as a YAML list (spec, optionally a change-plan).
