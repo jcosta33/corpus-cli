@@ -11,6 +11,7 @@
 
 import type { CoverageRow, ReviewPacket, VerifyBlock } from './reconcileFacts.ts';
 import { normalize_scalar } from '../../../infra/yamlScalar.ts';
+import { scan_markdown, strip_inline_code } from '../../../infra/markdownScan.ts';
 
 const FRONTMATTER_FENCE = '---';
 const STATUS_KEY = /^status:\s*(.*)$/;
@@ -18,11 +19,10 @@ const SECTION_HEADING = /^##\s+(.+?)\s*$/;
 const COVERAGE_HEADING = /^##\s+Requirement coverage\s*$/i;
 const REQUIREMENT_ID = /^[A-Z][A-Z0-9]*-\d+$/;
 
-// A fenced verify block opens with ```` ```verify <info-string> ```` (ADR-0083): the language token
-// `verify` immediately after the opening fence, the rest the info-string. The body below is verbatim
-// and unparsed — captured nowhere — closed by the next ``` fence.
-const VERIFY_FENCE_OPEN = /^```verify\b\s*(.*)$/;
-const FENCE_MARKER = '```';
+// A verify block opens with ```` ```verify <info-string> ```` (ADR-0083): the `verify` language token
+// then the info-string (the fenced body is verbatim and unparsed). scan_markdown exposes an opening
+// fence's info string; VERIFY_INFO matches the `verify` prefix and captures the rest.
+const VERIFY_INFO = /^verify\b\s*(.*)$/;
 // The three closed-value info-string tokens. `cmd` is double-quoted (a command carries spaces); `id`
 // and `result` are bare tokens.
 const INFO_ID = /\bid=([A-Z][A-Z0-9]*-\d+)\b/;
@@ -30,14 +30,25 @@ const INFO_CMD = /\bcmd="([^"]*)"/;
 const INFO_RESULT = /\bresult=(\w+)\b/;
 
 // The cells of a GFM table row (`| a | b | c |`), trimmed, surrounding empties from the outer pipes
-// dropped. A non-table line yields null.
+// dropped. Splits only on a `|` OUTSIDE an inline-code span and not GFM-escaped (`\|`), so a piped
+// shell command in an evidence cell (`` `grep x | wc -l` ``) is read as one cell. A non-table → null.
 function table_cells(line: string): string[] | null {
     const trimmed = line.trim();
     if (!trimmed.startsWith('|')) {
         return null;
     }
-    const cells = trimmed.split('|').map((cell) => cell.trim());
-    // `| a | b |`.split('|') → ['', ' a ', ' b ', ''] → drop the leading/trailing empties.
+    // `masked` blanks inline-code spans (length-preserved), so a `|` inside a code span is not a split.
+    const masked = strip_inline_code(trimmed);
+    const cells: string[] = [];
+    let start = 0;
+    for (let i = 0; i < trimmed.length; i += 1) {
+        if (masked[i] === '|' && (i === 0 || masked[i - 1] !== '\\')) {
+            cells.push(trimmed.slice(start, i).trim());
+            start = i + 1;
+        }
+    }
+    cells.push(trimmed.slice(start).trim());
+    // `| a | b |` → ['', 'a', 'b', ''] → drop the leading/trailing empties from the outer pipes.
     cells.shift();
     cells.pop();
     return cells;
@@ -69,9 +80,10 @@ function read_frontmatter_status(lines: readonly string[]): string | null {
 function parse_verify_info(info: string): VerifyBlock {
     const cmdMatch = INFO_CMD.exec(info);
     const cmd = cmdMatch !== null ? cmdMatch[1].trim() : null;
-    // Match `id` / `result` against the info-string with the quoted `cmd="…"` removed, so a `result=`
-    // or `id=` token sitting *inside* the quoted command can never be misread as the binding's own.
-    const outsideCmd = info.replace(INFO_CMD, '');
+    // Match `id` / `result` against the info-string with EVERY quoted `cmd="…"` removed (global), so a
+    // `result=` or `id=` token sitting inside any quoted command — including a second `cmd="…"` — can
+    // never be misread as the binding's own.
+    const outsideCmd = info.replace(/\bcmd="[^"]*"/g, '');
     const idMatch = INFO_ID.exec(outsideCmd);
     const resultMatch = INFO_RESULT.exec(outsideCmd);
     const id = idMatch !== null ? idMatch[1] : null;
@@ -89,17 +101,22 @@ export function parse_review_packet(source: string): ReviewPacket {
     const coverageRows: CoverageRow[] = [];
     const verifyBlocks: VerifyBlock[] = [];
     let inCoverage = false;
-    let inVerifyBody = false; // inside a verify block's verbatim body, between its fences
 
-    for (const line of lines) {
-        // Inside a verify block's body: consume verbatim until the closing fence. The body is never
-        // parsed (ADR-0083) — its only effect here is to suppress section/table scanning.
-        if (inVerifyBody) {
-            if (line.startsWith(FENCE_MARKER)) {
-                inVerifyBody = false;
+    for (const scanned of scan_markdown(lines)) {
+        // Fenced content is verbatim (ADR-0083) — never section/table structure, so a `## Requirement
+        // coverage` heading or a `| … |` row quoted inside a code block leaks nothing. The one thing
+        // read from a fence is a ```verify info-string opening inside the coverage section; its body
+        // stays unparsed (scan_markdown marks every body line inFence, so it is skipped here).
+        if (scanned.inFence) {
+            if (scanned.opensFence && inCoverage) {
+                const verifyMatch = VERIFY_INFO.exec(scanned.fenceInfo);
+                if (verifyMatch !== null) {
+                    verifyBlocks.push(parse_verify_info(verifyMatch[1]));
+                }
             }
             continue;
         }
+        const line = scanned.text;
         if (COVERAGE_HEADING.test(line)) {
             sectionTitles.push('Requirement coverage');
             inCoverage = true;
@@ -112,14 +129,6 @@ export function parse_review_packet(source: string): ReviewPacket {
             continue;
         }
         if (!inCoverage) {
-            continue;
-        }
-        // A fenced verify block keyed to the coverage section (a sibling to a row): parse its
-        // info-string, then skip its verbatim body to the closing fence.
-        const verifyOpen = VERIFY_FENCE_OPEN.exec(line);
-        if (verifyOpen !== null) {
-            verifyBlocks.push(parse_verify_info(verifyOpen[1]));
-            inVerifyBody = true;
             continue;
         }
         const cells = table_cells(line);

@@ -144,3 +144,24 @@ describe('check_change_plan reproduces the transformation fixture (AC-004)', () 
         expect(report.level).toBe('clean');
     });
 });
+
+describe('check_change_plan — wave continuation (#23 A4)', () => {
+    it('A4: a closing paragraph after the wave list does not mask a check-less wave from C011', () => {
+        const source = [
+            '---', 'type: change-plan', 'id: CHANGE-a4', 'title: A4', 'status: draft',
+            'kind: migration', 'owner: Jane', 'sources: [SPEC-x]', 'preserves: [PG-001]',
+            'created: 2026-06-19', '---', '',
+            '## Behavioral preservation guarantees', '',
+            '| ID | Behavior | Verify with |', '|---|---|---|',
+            '| PG-001 | x stays | `npm test` |', '',
+            '## Transformation waves', '',
+            '1. Move the callsites, run `npm test`',
+            '2. Delete the old API A shim', '',
+            'Throughout, the suite `npm test` stays green.',
+        ].join('\n');
+        const report = assertOk(
+            check_change_plan({ source, path: 'change-plans/a4.md', spec_ref_resolves: () => true })
+        );
+        expect(report.diagnostics.some((d) => d.code === 'C011')).toBe(true);
+    });
+});

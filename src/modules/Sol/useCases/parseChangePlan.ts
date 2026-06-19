@@ -14,6 +14,7 @@ import { type Result, ok, err, isErr } from '../../../infra/errors/result.ts';
 import { type AppError } from '../../../infra/errors/createAppError.ts';
 import { split_frontmatter } from '../services/frontmatter.ts';
 import { normalize_scalar } from '../../../infra/yamlScalar.ts';
+import { scan_markdown } from '../../../infra/markdownScan.ts';
 
 // A preserved-behavior id: either a cross-spec reference (`SPEC-checkout#AC-002`) or a plan-local
 // guarantee id (`PG-001`). Sourced from the frontmatter `preserves:` list or the guarantees table.
@@ -163,10 +164,18 @@ export function parse_change_plan(input: ParseChangePlanInput): ParseChangePlanR
     const waves: ChangePlanWave[] = [];
     type Section = 'guarantees' | 'waves' | 'other';
     let section: Section = 'other';
+    let waveContinuation = false; // true while the open wave's list item can still fold a prose line
 
+    const scanned = scan_markdown(body_lines);
     for (let offset = 0; offset < body_lines.length; offset += 1) {
         const line = body_lines[offset];
         const source_line = body_start_line + offset;
+
+        // A fenced code block is verbatim — a `## …` heading or a `1.` list item quoted in a code
+        // block is not a real section switch or a real wave entry.
+        if (scanned[offset].inFence) {
+            continue;
+        }
 
         const section_match = SECTION_HEADING.exec(line);
         if (section_match !== null) {
@@ -178,6 +187,7 @@ export function parse_change_plan(input: ParseChangePlanInput): ParseChangePlanR
             } else {
                 section = 'other';
             }
+            waveContinuation = false;
             continue;
         }
 
@@ -191,12 +201,17 @@ export function parse_change_plan(input: ParseChangePlanInput): ParseChangePlanR
         }
 
         if (section === 'waves') {
-            // A wave entry is a list item — ordered (`1.`) or unordered (`-`/`*`). Continuation lines
-            // (indented prose) fold into the open wave so a check named on the second line still counts.
+            // A wave entry is a list item — ordered (`1.`) or unordered (`-`/`*`). A continuation line
+            // folds into the open wave (a check named on its second line still counts) UNTIL a blank
+            // line ends the item — so a closing paragraph after the list does not fold into the last
+            // wave, which would mask a genuinely check-less wave from C011.
             const itemMatch = /^\s*(?:\d+\.|[-*])\s+(.*)$/.exec(line);
             if (itemMatch !== null) {
                 waves.push({ text: itemMatch[1], namesCheck: NAMES_CHECK.test(itemMatch[1]), line: source_line });
-            } else if (waves.length > 0 && line.trim().length > 0) {
+                waveContinuation = true;
+            } else if (line.trim().length === 0) {
+                waveContinuation = false;
+            } else if (waveContinuation && waves.length > 0) {
                 const open = waves[waves.length - 1];
                 const text = `${open.text}\n${line}`;
                 waves[waves.length - 1] = { text, namesCheck: NAMES_CHECK.test(text), line: open.line };

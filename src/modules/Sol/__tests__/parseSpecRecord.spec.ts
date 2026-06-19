@@ -149,3 +149,31 @@ Verify with:
         expect(crlf.requirements.map((requirement) => requirement.id)).toEqual(lf.requirements.map((r) => r.id));
     });
 });
+
+describe('parse_spec_record — fenced examples (#23/#31)', () => {
+    it('A2: a `### AC-NNN` inside a code fence is not registered as a real requirement', () => {
+        const spec = [
+            '---', 'type: spec', 'id: SPEC-a2', 'title: A2', 'status: ready', '---', '',
+            '## Requirements', '',
+            '### AC-001 — the real one', 'It must work.', 'Verify with: a test.', '',
+            '## Examples', '',
+            '```md', '### AC-777 — example only', 'Verify with: `fake`', '```',
+        ].join('\n');
+        const parsed = assertOk(parse_spec_record({ source: spec, path: 'spec.md' }));
+        const ids = parsed.requirements.map((r) => r.id);
+        expect(ids).toContain('AC-001');
+        expect(ids).not.toContain('AC-777');
+    });
+
+    it('H1/H2: a fenced `## Non-goals` heading and a fenced TODO are not seen as structure', () => {
+        const spec = [
+            '---', 'type: spec', 'id: SPEC-fenced', 'title: F', 'status: ready', '---', '',
+            '## Requirements', '',
+            '### AC-001 — shows a scaffold', 'It must emit an example.', 'Verify with: a test.', '',
+            '```md', '## Non-goals', 'TODO: fill in', '```',
+        ].join('\n');
+        const parsed = assertOk(parse_spec_record({ source: spec, path: 'spec.md' }));
+        expect(parsed.sectionTitles).not.toContain('Non-goals');
+        expect(parsed.bodyText.includes('TODO')).toBe(false);
+    });
+});

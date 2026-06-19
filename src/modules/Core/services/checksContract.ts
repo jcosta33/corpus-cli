@@ -12,6 +12,7 @@
 // workspace). C002 (cross-file id collision) is workspace-scope and lives with the workspace checker.
 
 import type { OutcomeLevel } from '../useCases/unixOutcome.ts';
+import { strip_inline_code } from '../../../infra/markdownScan.ts';
 
 // Pinned to swarm/checks/checks.yaml `version:`; the drift-guard test fails if the sibling diverges.
 export const CONTRACT_VERSION = '0.7.0';
@@ -140,7 +141,14 @@ export function is_workspace_ref(raw: string): boolean {
 }
 
 function count_strength_words(text: string): number {
-    const matches = text.match(STRENGTH_WORD_PATTERN);
+    // Strip inline-code spans per line so a strength word quoted in code (a `should:` config key, a
+    // `--should-skip` flag, an error string `input must be non-empty`) is not counted as a stated
+    // requirement modal (#31). The parser already drops fenced blocks from the requirement body.
+    const visible = text
+        .split('\n')
+        .map((line) => strip_inline_code(line))
+        .join('\n');
+    const matches = visible.match(STRENGTH_WORD_PATTERN);
     return matches === null ? 0 : matches.length;
 }
 

@@ -231,3 +231,42 @@ out
         expect(parse_review_packet(packet).verifyBlocks).toEqual([]);
     });
 });
+
+describe('parse_review_packet — markdown structure (#23)', () => {
+    it('A1: a `## Requirement coverage` + rows inside a code fence are not parsed as structure', () => {
+        const packet = [
+            '---', 'type: review', 'status: draft', '---', '',
+            '## Summary', 'Example coverage table:', '',
+            '```', '## Requirement coverage', '| ID | Result | Evidence |', '|---|---|---|',
+            '| AC-999 | Pass | leaked from a code block |', '```', '',
+            '## Changed files', '- src/x.ts',
+        ].join('\n');
+        const parsed = parse_review_packet(packet);
+        expect(parsed.coverageRows).toEqual([]);
+        expect(parsed.sectionTitles).not.toContain('Requirement coverage');
+    });
+
+    it('A3: a piped shell command in an inline-code Evidence cell stays one cell', () => {
+        const packet = [
+            '---', 'type: review', 'status: ready', '---', '',
+            '## Requirement coverage', '| ID | Result | Evidence |', '|---|---|---|',
+            '| AC-001 | Pass | `grep x | wc -l` |',
+        ].join('\n');
+        const row = parse_review_packet(packet).coverageRows[0];
+        expect(row.id).toBe('AC-001');
+        expect(row.result).toBe('Pass');
+        expect(row.evidence).toBe('`grep x | wc -l`');
+    });
+
+    it('A5: a second cmd="…" cannot steal the binding id (real id read after both commands)', () => {
+        const packet = [
+            '---', 'type: review', 'status: ready', '---', '',
+            '## Requirement coverage', '| ID | Result | Evidence |', '|---|---|---|',
+            '| AC-001 | Pass | see below |', '',
+            '```verify cmd="x" cmd="y id=AC-555" result=pass id=AC-001', 'out', '```',
+        ].join('\n');
+        const block = parse_review_packet(packet).verifyBlocks[0];
+        expect(block.id).toBe('AC-001');
+        expect(block.result).toBe('pass');
+    });
+});

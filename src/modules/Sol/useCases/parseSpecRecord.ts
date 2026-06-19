@@ -9,6 +9,7 @@ import { type Result, ok, err, isErr } from '../../../infra/errors/result.ts';
 import { type AppError } from '../../../infra/errors/createAppError.ts';
 import { split_frontmatter } from '../services/frontmatter.ts';
 import { normalize_scalar } from '../../../infra/yamlScalar.ts';
+import { scan_markdown, visible_text } from '../../../infra/markdownScan.ts';
 
 export type SpecRecordRequirement = Readonly<{
     id: string;
@@ -172,9 +173,17 @@ export function parse_spec_record(input: ParseSpecRecordInput): ParseSpecRecordR
         }
     };
 
+    const scanned = scan_markdown(body_lines);
     for (let offset = 0; offset < body_lines.length; offset += 1) {
         const line = body_lines[offset];
         const source_line = body_start_line + offset;
+
+        // A fenced code block is verbatim example text — never a requirement/section heading and never
+        // part of a requirement's statement, so a quoted `### AC-NNN`, a fenced `## Non-goals` example,
+        // or a fenced TBD / strength word does not register as live structure.
+        if (scanned[offset].inFence) {
+            continue;
+        }
 
         const requirement_match = REQUIREMENT_HEADING.exec(line);
         if (requirement_match !== null) {
@@ -218,7 +227,7 @@ export function parse_spec_record(input: ParseSpecRecordInput): ParseSpecRecordR
         sectionTitles,
         nonGoalsBody,
         openQuestionsPresent,
-        bodyText: body_lines.join('\n'),
+        bodyText: visible_text(scanned),
         links: extract_links(body_lines, body_start_line),
     });
 }
