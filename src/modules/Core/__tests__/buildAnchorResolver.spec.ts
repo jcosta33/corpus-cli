@@ -75,4 +75,24 @@ describe('build_anchor_resolver', () => {
         const resolves = build_anchor_resolver('no frontmatter fence here\n', join(dir, 'spec.md'));
         expect(resolves('ANYTHING')).toBe(true);
     });
+
+    it('extracts anchors in valid variant forms (single-quote, id-not-first, uppercase tag)', () => {
+        mkdirSync(join(dir, 'specs', 'cite'), { recursive: true });
+        mkdirSync(join(dir, 'research'), { recursive: true });
+        const variants = [
+            '# Sources',
+            "<a id='SINGLE'></a> single-quoted.",
+            '<a class="x" id="NOTFIRST"></a> id is not the first attribute.',
+            '<A ID="UPPER"></A> uppercase tag + attribute.',
+        ].join('\n');
+        writeFileSync(join(dir, 'research', 'sources.md'), variants);
+        const specPath = join(dir, 'specs', 'cite', 'spec.md');
+        const spec = SPEC_WITH_SOURCES.replace('../research/sources.md', '../../research/sources.md');
+        writeFileSync(specPath, spec);
+        const resolves = build_anchor_resolver(spec, specPath);
+        expect(resolves('SINGLE')).toBe(true);
+        expect(resolves('NOTFIRST')).toBe(true);
+        expect(resolves('UPPER')).toBe(true);
+        expect(resolves('GOOGLESA')).toBe(false); // not in this sources.md → still dangling
+    });
 });

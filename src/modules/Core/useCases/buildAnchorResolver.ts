@@ -13,8 +13,12 @@ import { resolve, dirname } from 'node:path';
 
 import { parse_spec_record } from '../../Sol/useCases/index.ts';
 
-// Every `<a id="…">` anchor declared in a sources.md (the HTML anchor the `[[KEY]]` form links).
-const ANCHOR_PATTERN = /<a\s+id="([^"]+)"/g;
+// Every `<a … id="KEY">` anchor declared in a sources.md (the HTML anchor the `[[KEY]]` form links).
+// The convention sources.md uses is `<a id="KEY"></a>`; this also tolerates the valid variants —
+// case-insensitive `<a` (a `\b` so `<area>`/`<address>` never match), `id` not necessarily the first
+// attribute, and single- or double-quoted — so an anchor written any of those ways is not a silent
+// dangle. It does not match a non-anchor tag (only `<a …>`).
+const ANCHOR_PATTERN = /<a\b[^>]*?\bid\s*=\s*["']([^"']+)["']/gi;
 
 function extract_anchors(sourcesText: string): Set<string> {
     const anchors = new Set<string>();
