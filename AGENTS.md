@@ -19,8 +19,9 @@
   `init · check · worktree · status · new` (+ `help`), each a direct command and
   an interactive TUI flow (`-i`; `swarm` with no args opens the dashboard).
   `swarm init` clones the swarm-starter-kit (no vendored copy lives here). The
-  checks contract this CLI implements (C001–C011) lives in the swarm repo,
-  `checks/checks.yaml` (v0.4.1), reimplemented in code at
+  checks contract this CLI implements (C001–C014) lives in the swarm repo,
+  `checks/checks.yaml` (that file's `version:` is the contract version of record —
+  don't pin a copy of it here), reimplemented in code at
   `src/modules/Core/services/checksContract.ts` and drift-guarded against it.
 
 ## Project facts
