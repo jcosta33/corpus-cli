@@ -8,6 +8,7 @@ export {
     format_board,
     format_worktrees,
     format_init_report,
+    format_update_report,
     format_review_report,
 } from '../services/render.ts';
 export { create_clack_prompter, is_cancelled, CANCEL, type Prompter } from './prompter.ts';

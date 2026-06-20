@@ -55,6 +55,7 @@ Each command is both a Unix part and an interactive flow:
 | Command                                        | What it does                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------ |
 | `swarm init [dir]`                             | Scaffold a workspace from the swarm-starter-kit, conflict-safe           |
+| `swarm update [--check]`                       | Check whether the workspace drifted behind the latest kit — read-only (the apply is deferred) |
 | `swarm check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg)      |
 | `swarm worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `swarm/<spec-slug>` branches           |
 | `swarm status`                                 | A read-only derived board over specs ← tasks ← reviews                   |
@@ -76,6 +77,16 @@ minimal footprint (`--workspace` / `--footprint` force the layout). `--from <pat
 kit source. Re-running is conflict-safe: unchanged kit files are no-ops (a clean re-run), and any
 file you have since edited is kept — reported as _skipped_ with a non-zero exit, so you can see what
 diverged.
+
+### `swarm update`
+
+Reads the workspace's `.agents/.swarm-version` pin (stamped by `swarm init`) and compares it to the
+latest kit's `VERSION`, resolved through the same source as `init` (the swarm-starter-kit by default,
+or `--from <path|url>`). Reports whether you're behind and the CHANGELOG delta — exit `0` up to date,
+`1` behind, `2` error. `--json` emits the report; **reads only — it writes nothing**. The 3-way-merge
+apply is deferred ([ADR-0091](https://github.com/jcosta33/swarm/blob/main/docs/adrs/0091-swarm-update-check.md)),
+so `--write` is refused with a pointer to the manual re-copy. The network lives here, never in the
+hermetic `swarm check`.
 
 ### `swarm check`
 

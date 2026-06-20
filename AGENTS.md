@@ -16,7 +16,7 @@
   `.agents/skills/implement-task/`.
 - swarm-cli is the **reconcile-only harness** (swarm ADR-0077): it prepares,
   checks, and reconciles the Swarm loop and never runs the model loop. Surface:
-  `init · check · worktree · status · review · new · pull · promote · run · show`
+  `init · update · check · worktree · status · review · new · pull · promote · run · show`
   (+ `help`) — each a direct command, most also an interactive TUI flow (`-i`;
   `swarm` with no args opens the dashboard).
   `swarm init` clones the swarm-starter-kit (no vendored copy lives here). The

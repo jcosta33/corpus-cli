@@ -16,6 +16,17 @@ export const COMMAND_CATALOG = [
         ],
     },
     {
+        name: 'update',
+        description: 'Check whether the workspace has drifted behind the latest kit (no write)',
+        usage: [
+            'swarm update [--check]',
+            '  (the drift check)           compare .agents/.swarm-version to the kit VERSION',
+            '  --from <path|url>           kit source (default: the swarm-starter-kit on GitHub)',
+            '  --json                      machine output',
+            '  exit 0 up-to-date · 1 behind · 2 error; reads only — the 3-way-merge apply is deferred (ADR-0091)',
+        ],
+    },
+    {
         name: 'check',
         description: 'Lint a spec, or render the whole-workspace verdict',
         usage: [

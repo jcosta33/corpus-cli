@@ -39,6 +39,9 @@ export {
 export { resolve_review_run, type ResolveReviewRunInput } from './resolveReviewRun.ts';
 export { draft_review_packet, type DraftReviewPacketInput, type DraftReviewPacket } from './draftReviewPacket.ts';
 
+// drift engine — swarm update --check, no agent, no write (SPEC-swarm-update, ADR-0091)
+export { check_update, type UpdateCheckReport, type CheckUpdateInput } from './checkUpdate.ts';
+
 // prepare engine — init + new, no agent (AC-012/013/016); pull + promote, no board (W5 AC-001/002)
 export { init_workspace } from './initWorkspace.ts';
 export { cut_packet } from './cutPacket.ts';

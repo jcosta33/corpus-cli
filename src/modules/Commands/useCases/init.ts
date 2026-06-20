@@ -19,7 +19,7 @@ import { format_init_report, run_init_flow, create_clack_prompter } from '../../
 
 const DEFAULT_KIT = 'https://github.com/jcosta33/swarm-starter-kit';
 
-type KitSource = Readonly<{ sourceDir: string; cleanup: () => void }>;
+export type KitSource = Readonly<{ sourceDir: string; cleanup: () => void }>;
 
 // A kit source must not be flag-shaped or a transport-scheme URL: git's `ext::`/`fd::`/`ssh+ext::`
 // transports can execute arbitrary commands, and a leading `-` is parsed as a clone option (swarm-hq #22).
@@ -42,7 +42,7 @@ function clone_kit(url: string): Result<KitSource, AppError> {
 }
 /* v8 ignore stop */
 
-function resolve_kit_source(from: string | undefined): Result<KitSource, AppError> {
+export function resolve_kit_source(from: string | undefined): Result<KitSource, AppError> {
     if (from !== undefined && existsSync(from)) {
         return ok({ sourceDir: from, cleanup: () => undefined });
     }

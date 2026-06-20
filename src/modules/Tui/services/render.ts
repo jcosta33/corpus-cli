@@ -229,3 +229,20 @@ export function format_init_report(report: {
         .filter((entry): entry is string => entry !== null)
         .join('\n');
 }
+
+export function format_update_report(report: {
+    behind: boolean;
+    currentVersion: string;
+    latestVersion: string;
+    changelog: string | null;
+}): string {
+    if (!report.behind) {
+        return `${color.green('✓ up to date')} — kit ${color.bold(report.currentVersion)}`;
+    }
+    const head = `${color.yellow('⚠ behind')} — ${color.bold(report.currentVersion)} ${color.dim('→')} ${color.bold(
+        report.latestVersion
+    )}`;
+    const tail = report.changelog !== null ? `\n\n${color.dim('CHANGELOG:')}\n${report.changelog}` : '';
+    const note = color.dim('\n\nrun `swarm update --check` after re-copying or cherry-picking the changed kit rules');
+    return `${head}${tail}${note}`;
+}
