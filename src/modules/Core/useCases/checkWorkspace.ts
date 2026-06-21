@@ -19,6 +19,12 @@ import type { OutcomeLevel } from './unixOutcome.ts';
 
 export type WorkspaceFinding = Readonly<{
     code: 'C002' | 'placeholder' | 'missing-template';
+    // SW-006: an unfilled {{placeholder}} in a freshly-scaffolded AGENTS.md is a "finish setup" nudge,
+    // not broken work — it must NOT block the gate on day one (the kit's own AGENTS.md ships with
+    // placeholders, so `swarm check` right after `swarm init` would otherwise greet a new user with a
+    // red blocking verdict on boilerplate). A duplicate id (C002) or a missing templates/ tree is a
+    // real structural defect and stays blocking.
+    level: 'blocking' | 'warning';
     message: string;
 }>;
 
@@ -92,13 +98,15 @@ function workspace_validity(workspaceDir: string): WorkspaceFinding[] {
             const where = hitLines.length === 1 ? `line ${hitLines[0]}` : `lines ${hitLines.join(', ')}`;
             findings.push({
                 code: 'placeholder',
-                message: `${liveFile} has unfilled {{placeholder}}s (${where}) — fill them in, then re-run \`swarm check\``,
+                level: 'warning',
+                message: `${liveFile} still has the kit's {{placeholder}}s (${where}) — fill them in before relying on the workspace`,
             });
         }
     }
     if (!existsSync(join(workspaceDir, 'templates'))) {
         findings.push({
             code: 'missing-template',
+            level: 'blocking',
             message: 'no templates/ directory — the core templates are missing',
         });
     }
@@ -141,7 +149,11 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
         input.includeValidity === false ? [] : [...workspace_validity(input.workspaceDir)];
     for (const [id, paths] of frontmatterIdToPaths) {
         if (paths.length > 1) {
-            findings.push({ code: 'C002', message: `frontmatter id ${id} is claimed by ${paths.length} specs` });
+            findings.push({
+                code: 'C002',
+                level: 'blocking',
+                message: `frontmatter id ${id} is claimed by ${paths.length} specs`,
+            });
         }
     }
 
@@ -166,11 +178,13 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
     }
 
     const hasBlocking =
-        findings.length > 0 ||
+        findings.some((finding) => finding.level === 'blocking') ||
         specs.some((spec) => spec.level === 'blocking') ||
         changePlans.some((plan) => plan.level === 'blocking');
     const hasWarning =
-        specs.some((spec) => spec.level === 'warning') || changePlans.some((plan) => plan.level === 'warning');
+        findings.some((finding) => finding.level === 'warning') ||
+        specs.some((spec) => spec.level === 'warning') ||
+        changePlans.some((plan) => plan.level === 'warning');
     let level: OutcomeLevel = 'clean';
     if (hasBlocking) {
         level = 'blocking';

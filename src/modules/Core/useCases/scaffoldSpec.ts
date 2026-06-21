@@ -1,7 +1,9 @@
 // PrepareEngine.new — scaffold a fresh spec from the template (AC-013). Generates a draft spec
-// conforming to the checks.yaml spec frontmatter + the plain two-tier shape (Intent, Non-goals,
-// Requirements with one AC placeholder, Open questions). status: draft, so the TBD placeholders do
-// not trip C007. Never overwrites an existing spec.
+// conforming to the checks.yaml spec frontmatter + the SAME section shape as the frozen
+// `templates/spec.md` the kit ships (Intent, Non-goals, Requirements with one AC placeholder, Open
+// questions, Affected areas, Dropped from sources) — kept in parity so a hand author following the kit
+// template and `swarm new spec` land on the same skeleton (SW-008). status: draft, so the TBD
+// placeholders do not trip C007. Never overwrites an existing spec.
 
 import { existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
@@ -40,7 +42,7 @@ sources:
 
 ## Intent
 
-{{1-3 sentences: the behaviour change and why.}}
+{{1–3 sentences: the behavior change and why.}}
 
 ## Non-goals
 
@@ -49,12 +51,22 @@ sources:
 ## Requirements
 
 ### AC-001 — {{short name}}
-{{The system must ...}}
-Verify with: {{a runnable test or command}}
+
+When {{condition}}, {{the component}} must {{observable behavior}}.
+
+Verify with: \`{{test-name-or-command}}\`
 
 ## Open questions
 
 - none
+
+## Affected areas
+
+- \`{{path}}\`
+
+## Dropped from sources
+
+- {{dropped item — reason}}
 `;
 }
 

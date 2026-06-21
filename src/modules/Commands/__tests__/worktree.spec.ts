@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, realpathSync, writeFileSync } from 'fs';
+import { mkdtempSync, mkdirSync, rmSync, realpathSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
@@ -54,6 +54,28 @@ describe('worktree command (direct surface, AC-009/010/002)', () => {
         const second = await capture(() => run(['create', 'checkout', '--task', 'ac-1'], repo));
         expect(second.code).toBe(0);
         expect(second.out).toContain('reusing');
+    });
+
+    it('create --task resolves a cut task and derives the canonical branch tail review/run look up (SW-005)', async () => {
+        // A real cut task whose id is TASK-checkout-discount: passing either the bare slug or the full id
+        // must land on the SAME branch tail (the id minus TASK-, lower-cased) the consumer computes.
+        mkdirSync(join(repo, 'tasks'), { recursive: true });
+        writeFileSync(join(repo, 'tasks', 'TASK-checkout-discount.md'), '---\ntype: task\nid: TASK-checkout-discount\n---\n');
+        const byId = await capture(() => run(['create', 'checkout', '--task', 'TASK-checkout-discount'], repo));
+        expect(byId.code).toBe(0);
+        expect(git(['worktree', 'list'])).toContain('swarm/checkout/checkout-discount');
+    });
+
+    it('create --task that names no cut task fails early, listing the real tasks — never a silent mismatch (SW-005)', async () => {
+        mkdirSync(join(repo, 'tasks'), { recursive: true });
+        writeFileSync(join(repo, 'tasks', 'TASK-checkout-discount.md'), '---\ntype: task\nid: TASK-checkout-discount\n---\n');
+        // The worker guesses the capability name (`discount`) rather than the task id tail — the old code
+        // made a branch nothing could find. Now it errors early with the valid options and creates nothing.
+        const { code, err } = await capture(() => run(['create', 'checkout', '--task', 'discount'], repo));
+        expect(code).toBe(2);
+        expect(err).toContain('no task matching "discount"');
+        expect(err).toContain('TASK-checkout-discount');
+        expect(git(['worktree', 'list'])).not.toContain('swarm/checkout');
     });
 
     it('create with no slug → usage error exit 2', async () => {

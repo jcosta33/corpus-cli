@@ -113,10 +113,22 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
             return run_init_flow(create_clack_prompter(), { sourceDir, targetDir, mode });
         }
         /* v8 ignore stop */
+        const forcedLayout = flags.get('footprint') === true || flags.get('workspace') === true;
         return project({
             result: init_workspace({ sourceDir, targetDir, policy, mode }),
             json,
-            render: format_init_report,
+            // SW-007: the layout is auto-detected by directory emptiness, and `footprint` (the 2-file
+            // pointer) is the silent default for any non-empty dir — which collides with the standard
+            // "git init + commit first" onboarding step, leaving a co-located/brownfield adopter thinking
+            // a 2-file pointer is the whole workspace. When footprint was auto-chosen, say so and show the
+            // switch. (`--json` already carries `mode`, and an explicitly-forced layout needs no banner.)
+            render: (report) =>
+                report.mode === 'footprint' && !forcedLayout
+                    ? 'detected a non-empty directory → footprint layout: only the pointer files ' +
+                      '(.gitignore + AGENTS.md).\nFor the full workspace (specs/ tasks/ reviews/ templates/ …) ' +
+                      're-run with --workspace.\n' +
+                      format_init_report(report)
+                    : format_init_report(report),
         });
     } finally {
         cleanup();

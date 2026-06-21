@@ -98,6 +98,14 @@ function human_attention(report: ReviewReport): string[] {
         lines.push('No review packet yet — every in-scope requirement reads uncovered until a human fills it.');
     }
     for (const finding of report.coverage) {
+        // SW-012: on a fresh draft (no prior packet) every in-scope id reads `uncovered` because no rows
+        // exist YET — but render_draft is about to write an Unverified row for each, so echoing them as
+        // "no coverage row" contradicts the table the same draft emits. The one summary line above
+        // already states the packet is empty; suppress the per-id uncovered noise here. (`orphan`
+        // findings — a row naming an id the spec lacks — are real even on a draft and stay.)
+        if (!report.hasReviewPacket && finding.kind === 'uncovered') {
+            continue;
+        }
         lines.push(`C012 ${finding.kind}: ${finding.message}`);
     }
     for (const finding of report.verifyBinding) {

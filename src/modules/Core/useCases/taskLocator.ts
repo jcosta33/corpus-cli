@@ -61,6 +61,20 @@ export function resolve_task(
     return null;
 }
 
+// Every task id declared in the workspace's tasks/ (the frontmatter `id`, else the filename stem),
+// sorted. Used to suggest valid --task values when `swarm worktree create --task <t>` names something
+// that isn't a cut task (SW-005) — turning a silently-mismatched branch into an early, listed error.
+export function list_task_ids(workspaceDir: string): string[] {
+    const tasksDir = join(workspaceDir, 'tasks');
+    if (!existsSync(tasksDir)) {
+        return [];
+    }
+    return readdirSync(tasksDir)
+        .filter((name) => name.endsWith('.md') && name.toLowerCase() !== 'readme.md')
+        .map((name) => frontmatter_value(readFileSync(join(tasksDir, name), 'utf8'), 'id') ?? name.replace(/\.md$/, ''))
+        .sort();
+}
+
 // The source spec for a task: the specs/*/spec.md whose frontmatter id matches the packet's `source:`
 // spec id. Returns the path + enclosing slug (the worktree branch's spec segment, ADR-0046).
 export function find_source_spec(workspaceDir: string, specId: string): { path: string; slug: string } | null {

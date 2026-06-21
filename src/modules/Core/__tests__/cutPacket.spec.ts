@@ -51,6 +51,22 @@ describe('cut_packet', () => {
         expect(content).toContain('source:\n  - SPEC-x');
     });
 
+    it('pre-fills each Verify line with the spec\'s parsed `Verify with:` command, not a {{command}} placeholder (SW-003)', () => {
+        // A spec whose ACs put `Verify with:` on its OWN line (the shape the parser lifts a command from):
+        // the cut packet must carry that command per scoped AC (the tool already parsed it), so the worker
+        // is not retyping data `swarm new task` already had.
+        mkdirSync(join(ws, 'specs', 'v'), { recursive: true });
+        writeFileSync(
+            join(ws, 'specs', 'v', 'spec.md'),
+            `---\ntype: spec\nid: SPEC-v\nstatus: ready\nsources:\n  - ADR-0077\n---\n\n## Requirements\n\n### AC-001 — one\nThe tool must do one.\nVerify with: \`pytest tests/test_one.py\`\n\n### AC-002 — two\nThe tool must do two.\nVerify with: \`pytest tests/test_two.py\`\n`
+        );
+        const report = assertOk(cut_packet({ workspaceDir: ws, specId: 'SPEC-v', scope: ['AC-001', 'AC-002'] }));
+        const content = read(report.taskId);
+        expect(content).toContain('- [ ] `pytest tests/test_one.py` (AC-001)');
+        expect(content).toContain('- [ ] `pytest tests/test_two.py` (AC-002)');
+        expect(content).not.toContain('{{command}}');
+    });
+
     it('an empty scope yields an empty Scope — never invents an id', () => {
         const report = assertOk(cut_packet({ workspaceDir: ws, specId: 'SPEC-x', scope: [] }));
         const content = read(report.taskId);

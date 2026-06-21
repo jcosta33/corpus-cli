@@ -10,6 +10,7 @@ import { join } from 'path';
 import { err, ok, isErr, type Result } from '../../../infra/errors/result.ts';
 import { createAppError, type AppError } from '../../../infra/errors/createAppError.ts';
 import { frontmatter_value, find_source_spec, resolve_task, resolve_worktree } from './taskLocator.ts';
+import { task_slug } from '../services/worktreeNames.ts';
 import { parse_agent_config, resolve_adapter, type Adapter } from '../services/agentConfig.ts';
 import { usage_error } from './unixOutcome.ts';
 
@@ -73,9 +74,12 @@ export function resolve_launch(input: ResolveLaunchInput): Result<LaunchPlan, Ap
     const specSlug = source !== null ? (find_source_spec(input.workspaceDir, source)?.slug ?? '') : '';
     const worktree = resolve_worktree(input.repoRoot, specSlug, resolved.id);
     if (worktree === null) {
-        return err(
-            usage_error(`no worktree for ${resolved.id} — run \`swarm worktree create\` before launching the run`)
-        );
+        // Name the exact per-task create command (SW-005): the branch tail derives from the task id, so
+        // a bare `swarm worktree create` (no --task) makes the wrong branch. Use the spec slug when known.
+        const tail = task_slug(resolved.id);
+        const createCmd =
+            specSlug !== '' ? `swarm worktree create ${specSlug} --task ${tail}` : `swarm worktree create <spec> --task ${tail}`;
+        return err(usage_error(`no worktree for ${resolved.id} — create it with \`${createCmd}\` before launching the run`));
     }
 
     return ok({

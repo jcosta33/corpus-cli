@@ -27,7 +27,8 @@ export type CutPacketReport = Readonly<{
     scope: readonly string[];
 }>;
 
-type FoundSpec = Readonly<{ path: string; requirementIds: readonly string[] }>;
+type SpecRequirement = Readonly<{ id: string; verifyCommand: string | null }>;
+type FoundSpec = Readonly<{ path: string; requirements: readonly SpecRequirement[] }>;
 
 function find_spec(workspaceDir: string, specId: string): FoundSpec | null {
     const specsDir = join(workspaceDir, 'specs');
@@ -41,19 +42,33 @@ function find_spec(workspaceDir: string, specId: string): FoundSpec | null {
         }
         const parsed = parse_spec_record({ source: readFileSync(specPath, 'utf8'), path: specPath });
         if (isOk(parsed) && parsed.value.frontmatter.id === specId) {
-            return { path: specPath, requirementIds: parsed.value.requirements.map((r) => r.id) };
+            return {
+                path: specPath,
+                requirements: parsed.value.requirements.map((r) => ({ id: r.id, verifyCommand: r.verifyCommand })),
+            };
         }
     }
     return null;
 }
 
-function render_packet(input: { taskId: string; specId: string; specRel: string; scope: readonly string[] }): string {
+function render_packet(input: {
+    taskId: string;
+    specId: string;
+    specRel: string;
+    scope: readonly string[];
+    verify: readonly { id: string; command: string | null }[];
+}): string {
     const scopeList =
         input.scope.length > 0
             ? input.scope.map((id) => `- ${id}`).join('\n')
             : '<!-- add the requirement ids this task covers -->';
+    // SW-003: pre-fill each Verify line with the spec's already-parsed `Verify with:` command for that
+    // AC, so the cut packet carries the real command instead of a {{command}} placeholder the worker
+    // has to re-copy. Fall back to the placeholder only where the spec named no command.
     const verifyList =
-        input.scope.length > 0 ? input.scope.map((id) => `- [ ] {{command}} (${id})`).join('\n') : '- [ ] {{command}}';
+        input.verify.length > 0
+            ? input.verify.map((v) => `- [ ] ${v.command ?? '{{command}}'} (${v.id})`).join('\n')
+            : '- [ ] {{command}}';
     return `---
 type: task
 id: ${input.taskId}
@@ -115,7 +130,8 @@ export function cut_packet(input: CutPacketInput): Result<CutPacketReport, AppEr
 
     // Dedup the requested scope so `--scope AC-001,AC-001` doesn't write a duplicated Scope/Verify list.
     const scope = [...new Set(input.scope)];
-    const unknown = scope.filter((id) => !spec.requirementIds.includes(id));
+    const requirementIds = spec.requirements.map((r) => r.id);
+    const unknown = scope.filter((id) => !requirementIds.includes(id));
     if (unknown.length > 0) {
         return err(
             createAppError('UnknownScope', `scope ids are not requirements of ${input.specId}: ${unknown.join(', ')}`, {
@@ -136,11 +152,16 @@ export function cut_packet(input: CutPacketInput): Result<CutPacketReport, AppEr
         return err(createAppError('TaskExists', `a task packet already exists: tasks/${taskId}.md`, { taskId }));
     }
 
+    const verify = scope.map((id) => ({
+        id,
+        command: spec.requirements.find((r) => r.id === id)?.verifyCommand ?? null,
+    }));
     const content = render_packet({
         taskId,
         specId: input.specId,
         specRel: relative(input.workspaceDir, spec.path),
         scope,
+        verify,
     });
     mkdirSync(dirname(taskPath), { recursive: true });
     writeFileSync(taskPath, content);

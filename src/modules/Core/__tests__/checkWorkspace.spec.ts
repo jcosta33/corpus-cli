@@ -123,6 +123,21 @@ describe('check_workspace', () => {
         expect(placeholder?.message).toContain('fill them in');
     });
 
+    it('an unfilled AGENTS.md placeholder ALONE is a warning, not a blocking verdict — the day-one nudge (SW-006)', () => {
+        // A freshly-scaffolded workspace (templates present, specs clean) whose AGENTS.md still carries the
+        // kit's {{placeholder}}s must NOT fail the merge gate (exit 2) on boilerplate — it nudges the user
+        // to finish setup (exit 1). Greeting a day-one user with a red blocking verdict was the worst
+        // first impression in the field test.
+        writeSpec('good', CONFORMANT);
+        withTemplates();
+        writeFileSync(join(ws, 'AGENTS.md'), 'Repo guide with a {{leftover}} placeholder.\n');
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.verdict).toBe('clean'); // the merge gate is NOT failed by an unfilled scaffold
+        expect(report.level).toBe('warning'); // exit 1 — the finish-setup nudge
+        const placeholder = report.workspaceFindings.find((finding) => finding.code === 'placeholder');
+        expect(placeholder?.level).toBe('warning');
+    });
+
     it('flags a duplicate frontmatter id but not a reused requirement id (C002, spec-scoped)', () => {
         writeSpec('one', CONFORMANT);
         writeSpec('two', CONFORMANT); // same SPEC-good frontmatter id + same AC-001

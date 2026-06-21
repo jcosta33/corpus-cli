@@ -109,9 +109,12 @@ describe('run_review_flow (AC-027)', () => {
 
     it('a clean reconcile shows the clean outro (a human still owns the result)', async () => {
         // Make the run clean: the worktree's change is in scope + claimed, and a review packet covers
-        // every in-scope id — so no fact is surfaced and the flow takes the clean outro branch.
+        // every in-scope id — so no fact is surfaced and the flow takes the clean outro branch. The
+        // packet under review is the BRANCH's copy (SW-004): the worker fills Affected areas + Run
+        // summary IN the worktree, so write the in-scope/claimed packet there, not to the workspace
+        // checkout (whose copy still holds the blank cut packet pre-merge).
         writeFileSync(
-            join(repo, 'tasks', 'TASK-feat.md'),
+            join(repo, '.worktrees', 'feat-feat', 'tasks', 'TASK-feat.md'),
             TASK.replace('- `src`', '- `src-a.ts`').replace('- Changed files: `src/a.ts`', '- Changed files: `src-a.ts`')
         );
         mkdirSync(join(repo, 'reviews'), { recursive: true });

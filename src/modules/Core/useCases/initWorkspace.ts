@@ -50,7 +50,10 @@ const GITIGNORE_START = '# >>> swarm >>>';
 const GITIGNORE_END = '# <<< swarm <<<';
 const AGENTS_START = '<!-- swarm:start -->';
 const AGENTS_END = '<!-- swarm:end -->';
-const GITIGNORE_FALLBACK = '.swarm-cache/\n*.swarm-bak';
+// Fallback ignores when a kit source ships no `.gitignore.additions`. `.worktrees/` is the load-bearing
+// one: committing an in-repo worktree stages an embedded gitlink (SW-002), so guard it even in the
+// degenerate no-kit path.
+const GITIGNORE_FALLBACK = '.worktrees/\n.swarm/\n.swarm-cache/\n*.swarm-bak';
 const AGENTS_POINTER = [
     'This repository is adopted into a Swarm workflow. The spec / task / review',
     'workspace and templates come from the Swarm starter kit',

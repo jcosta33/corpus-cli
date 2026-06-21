@@ -106,11 +106,15 @@ describe('draft_review_packet — populates from the reconcile (AC-001)', () => 
         expect(draft.markdown).toContain('task: TASK-feat');
     });
 
-    it('routes the reconcile human-attention candidates (no packet yet → uncovered ids)', () => {
+    it('routes the no-packet case as ONE summary line, not per-id "uncovered" noise contradicting its own rows (SW-012)', () => {
         const draft = assertOk(draft_review_packet(input({ reviewPacketSource: null })));
-        // No review packet yet → every in-scope id reads uncovered, surfaced to Human attention.
+        // No review packet yet → one summary line: every in-scope id reads uncovered until a human fills it.
         expect(draft.markdown).toContain('No review packet yet');
-        expect(draft.markdown).toMatch(/C012 uncovered/);
+        // ...but the draft WRITES an Unverified row for each in-scope id, so it must NOT also echo a
+        // per-id "C012 uncovered: ... no coverage row" line — that contradicted the table it just emitted.
+        expect(draft.markdown).not.toMatch(/C012 uncovered/);
+        // The rows are present (Unverified), which is exactly why the per-id "no coverage row" was wrong.
+        expect(parse_review_packet(draft.markdown).coverageRows.map((r) => r.id)).toEqual(['AC-001', 'AC-002']);
     });
 
     it('uses the spec title for the heading when present', () => {

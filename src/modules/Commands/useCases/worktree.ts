@@ -15,6 +15,9 @@ import {
     remove_worktree,
     prune_worktrees,
     is_safe_segment,
+    resolve_task,
+    list_task_ids,
+    task_slug,
 } from '../../Core/useCases/index.ts';
 import { resolve_repo_root, current_branch, repo_has_commits } from '../../Workspace/useCases/index.ts';
 import { parse_flags } from '../../Terminal/useCases/index.ts';
@@ -59,6 +62,32 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         if (taskSlug !== undefined && !is_safe_segment(taskSlug)) {
             return emit_error(usage_error(`invalid --task value: "${taskSlug}" — expected a single path-safe segment`), json);
         }
+        // SW-005: tie --task to a REAL cut task so the worktree branch tail matches what `swarm review`
+        // and `swarm run` later look up. The worker naturally passes a capability name (`create-list`)
+        // while the task id is `TASK-potluck-create-list`; the branch tail derives from the task id, so
+        // the guessed name produced a branch nothing could find, and the old error suggested an
+        // impossible recovery. Resolve --task against the workspace tasks (co-located layout) and derive
+        // the tail from the canonical id; if it names nothing, fail EARLY with the valid options. When no
+        // tasks/ is visible here (split-repo, or the task isn't cut yet) we can't validate — pass it
+        // through and let create_worktree normalize it.
+        let effectiveTaskSlug = taskSlug;
+        if (taskSlug !== undefined) {
+            const resolvedTask = resolve_task(repoRoot, taskSlug);
+            if (resolvedTask !== null) {
+                effectiveTaskSlug = task_slug(resolvedTask.id);
+            } else {
+                const ids = list_task_ids(repoRoot);
+                if (ids.length > 0) {
+                    return emit_error(
+                        usage_error(
+                            `no task matching "${taskSlug}" in this workspace — cut it first with ` +
+                                `\`swarm new task --from <SPEC-id> --id <TASK-id>\`, or name one of: ${ids.join(', ')}`
+                        ),
+                        json
+                    );
+                }
+            }
+        }
         // A flag-shaped --base would be passed to git as an option (`git worktree add … -x`); a base is a
         // git ref (may contain `/`), so it gets the leading-dash guard, not is_safe_segment.
         if (base?.startsWith('-') === true) {
@@ -72,7 +101,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         }
         const baseBranch = base ?? current_branch(repoRoot) ?? 'main';
         return project({
-            result: create_worktree({ repoRoot, specSlug: slug, taskSlug, baseBranch }),
+            result: create_worktree({ repoRoot, specSlug: slug, taskSlug: effectiveTaskSlug, baseBranch }),
             json,
             render: (report) => {
                 const head = `${report.reused ? 'reusing' : 'created'} ${report.branch}\n  ${report.worktreePath}`;

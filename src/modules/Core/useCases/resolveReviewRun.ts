@@ -5,12 +5,13 @@
 // call the SAME engine (AC-027). Writes nothing.
 
 import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 
 import { ok, err, isErr, type Result } from '../../../infra/errors/result.ts';
 import { createAppError, type AppError } from '../../../infra/errors/createAppError.ts';
 import { current_branch, worktree_changed_files } from '../../Workspace/useCases/index.ts';
 import { frontmatter_value, find_source_spec, resolve_worktree, resolve_task } from './taskLocator.ts';
+import { task_slug } from '../services/worktreeNames.ts';
 import type { ReconcileReviewInput } from './reconcileReview.ts';
 import { usage_error } from './unixOutcome.ts';
 
@@ -62,14 +63,34 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
 
     const worktree = resolve_worktree(input.repoRoot, spec.slug, task.id);
     if (worktree === null) {
+        const tail = task_slug(task.id);
         return err(
             usage_error(
-                `no worktree found for ${task.id} — launch the run with \`swarm worktree create ${spec.slug}\` first. ` +
+                // The suggestion must name the per-task branch this review looks for. The old message
+                // suggested `swarm worktree create ${spec.slug}` (the whole-spec form), which git refuses
+                // once any `swarm/${spec.slug}/<task>` ref exists (a ref can't be both a leaf and a
+                // directory) — so following it was impossible (SW-005). Spell the exact --task form.
+                `no worktree found for ${task.id} — create it with ` +
+                    `\`swarm worktree create ${spec.slug} --task ${tail}\` first ` +
+                    `(that makes the branch \`swarm/${spec.slug}/${tail}\` this review reconciles against). ` +
                     `If the code lives in a separate repo from this workspace, point the review at it with ` +
                     `\`swarm review ${input.task} --repo <path-to-code-repo>\`.`
             )
         );
     }
+
+    // SW-004: the self-report under review is the BRANCH's copy of the packet — the worker fills the
+    // `## Run summary` (and the real Affected areas / Verify edits) inside the worktree, while the
+    // workspace checkout still holds the blank cut packet until merge. Reconciling the workspace copy
+    // silently no-ops the self-report ("run summary lists no machine-checkable file paths"). When the
+    // worktree carries its own copy of the packet (the co-located layout), reconcile THAT; otherwise
+    // keep the workspace copy (split-repo, where the worktree is code-only and has no tasks/).
+    const relTaskPath = relative(input.workspaceDir, task.path);
+    const worktreePacketPath = join(worktree.path, relTaskPath);
+    const reviewedPacketSource =
+        worktreePacketPath !== task.path && existsSync(worktreePacketPath)
+            ? readFileSync(worktreePacketPath, 'utf8')
+            : taskPacketSource;
 
     // The diff base: an explicit `--base`, else the REPO ROOT's current branch (not a per-worktree
     // recorded fork point), else `main`. worktree_changed_files uses a three-dot `base...HEAD`, so the
@@ -80,15 +101,20 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
     if (isErr(diff)) {
         return err(diff.error);
     }
+    // The task packet you are reviewing is the review's INPUT, not code under review. In the co-located
+    // layout the worker fills its Run summary inside the worktree, so that edit shows in the diff — drop
+    // the packet's own path so it is not mis-flagged as an outside-scope / changed-not-claimed code change
+    // (SW-004; in split-repo the worktree has no packet, so this is a no-op).
+    const diffChangedFiles = diff.value.filter((path) => path !== relTaskPath);
 
     return ok({
         task: task.id,
-        taskPacketSource,
+        taskPacketSource: reviewedPacketSource,
         specSource: readFileSync(spec.path, 'utf8'),
         // Match the review by the task's canonical frontmatter `id` (the SAME key `swarm status` matches),
         // not the raw CLI arg — so `swarm review` and `swarm status` agree on one `task:` value rather than
         // demanding opposite forms in the same field.
         reviewPacketSource: find_review_packet(input.workspaceDir, task.id),
-        diffChangedFiles: diff.value,
+        diffChangedFiles,
     });
 }

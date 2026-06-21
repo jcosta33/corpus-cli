@@ -47,7 +47,7 @@ export function format_workspace_report(report: {
     level: RenderLevel;
     specs: readonly { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }[];
     changePlans?: readonly { path: string; level: RenderLevel; diagnostics: readonly RenderDiagnostic[] }[];
-    workspaceFindings: readonly { code: string; message: string }[];
+    workspaceFindings: readonly { code: string; message: string; level?: string }[];
 }): string {
     const changePlans = report.changePlans ?? [];
     // Render the 3-way severity (clean / warning / blocking), not the binary merge `verdict`, so a
@@ -74,7 +74,10 @@ export function format_workspace_report(report: {
         }
     }
     for (const finding of report.workspaceFindings) {
-        lines.push(`  ${color.red('✗')}  ${color.bold(finding.code)}  ${finding.message}`);
+        // A warning-level finding (an unfilled day-one AGENTS.md placeholder, SW-006) shows ⚠ not a red
+        // ✗ — it nudges the user to finish setup without failing the merge gate on the kit's boilerplate.
+        const icon = finding.level === 'warning' ? color.yellow('⚠') : color.red('✗');
+        lines.push(`  ${icon}  ${color.bold(finding.code)}  ${finding.message}`);
     }
     return lines.join('\n');
 }
