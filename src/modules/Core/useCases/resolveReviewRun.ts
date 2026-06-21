@@ -92,6 +92,14 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
             ? readFileSync(worktreePacketPath, 'utf8')
             : taskPacketSource;
 
+    // Resolve the spec the reconcile checks against from the SAME (reviewed) packet whose scope + claims
+    // it reads, so spec and scope are never lifted from two different copies of the packet. The worktree
+    // lookup above used the workspace copy's source to FIND the branch (and falls back when it differs);
+    // for the reconcile, prefer the reviewed packet's declared spec when it resolves, else keep that spec.
+    const reviewedSpecId = frontmatter_value(reviewedPacketSource, 'source');
+    const reviewedSpec = reviewedSpecId !== null ? find_source_spec(input.workspaceDir, reviewedSpecId) : null;
+    const specForReconcile = reviewedSpec ?? spec;
+
     // The diff base: an explicit `--base`, else the REPO ROOT's current branch (not a per-worktree
     // recorded fork point), else `main`. worktree_changed_files uses a three-dot `base...HEAD`, so the
     // merge-base makes this correct for the common layout (repo root on the trunk the run forked from);
@@ -110,7 +118,7 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
     return ok({
         task: task.id,
         taskPacketSource: reviewedPacketSource,
-        specSource: readFileSync(spec.path, 'utf8'),
+        specSource: readFileSync(specForReconcile.path, 'utf8'),
         // Match the review by the task's canonical frontmatter `id` (the SAME key `swarm status` matches),
         // not the raw CLI arg — so `swarm review` and `swarm status` agree on one `task:` value rather than
         // demanding opposite forms in the same field.

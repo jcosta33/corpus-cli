@@ -56,14 +56,16 @@ describe('worktree command (direct surface, AC-009/010/002)', () => {
         expect(second.out).toContain('reusing');
     });
 
-    it('create --task resolves a cut task and derives the canonical branch tail review/run look up (SW-005)', async () => {
-        // A real cut task whose id is TASK-checkout-discount: passing either the bare slug or the full id
-        // must land on the SAME branch tail (the id minus TASK-, lower-cased) the consumer computes.
+    it('create --task derives the branch tail from the resolved task\'s frontmatter id, not the raw arg (SW-005)', async () => {
+        // A task whose FILENAME stem differs from its frontmatter `id` — so the branch tail can only be
+        // right if create resolves the task and uses its canonical id (`TASK-real-name` → `real-name`),
+        // not the --task arg (which would give `alias`). This is exactly what review/run key off.
         mkdirSync(join(repo, 'tasks'), { recursive: true });
-        writeFileSync(join(repo, 'tasks', 'TASK-checkout-discount.md'), '---\ntype: task\nid: TASK-checkout-discount\n---\n');
-        const byId = await capture(() => run(['create', 'checkout', '--task', 'TASK-checkout-discount'], repo));
-        expect(byId.code).toBe(0);
-        expect(git(['worktree', 'list'])).toContain('swarm/checkout/checkout-discount');
+        writeFileSync(join(repo, 'tasks', 'TASK-alias.md'), '---\ntype: task\nid: TASK-real-name\n---\n');
+        const created = await capture(() => run(['create', 'checkout', '--task', 'TASK-alias'], repo));
+        expect(created.code).toBe(0);
+        expect(git(['worktree', 'list'])).toContain('swarm/checkout/real-name');
+        expect(git(['worktree', 'list'])).not.toContain('swarm/checkout/alias');
     });
 
     it('create --task that names no cut task fails early, listing the real tasks — never a silent mismatch (SW-005)', async () => {

@@ -75,6 +75,18 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
             const resolvedTask = resolve_task(repoRoot, taskSlug);
             if (resolvedTask !== null) {
                 effectiveTaskSlug = task_slug(resolvedTask.id);
+                // The raw --task was validated above, but the resolved value derives from the task file's
+                // frontmatter `id:` — re-validate it as a path-safe segment so a crafted id (e.g.
+                // `TASK-x/../y`) can never become the branch tail / `.worktrees/` dir name (defense in
+                // depth: git's ref-name rules also reject it, but Swarm should not rely on that alone).
+                if (!is_safe_segment(effectiveTaskSlug)) {
+                    return emit_error(
+                        usage_error(
+                            `task "${resolvedTask.id}" derives an unsafe branch segment "${effectiveTaskSlug}" — its frontmatter id must be a single path-safe segment`
+                        ),
+                        json
+                    );
+                }
             } else {
                 const ids = list_task_ids(repoRoot);
                 if (ids.length > 0) {
