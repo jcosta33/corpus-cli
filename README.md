@@ -61,7 +61,7 @@ Each command is both a Unix part and an interactive flow:
 | Command                                        | What it does                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------ |
 | `swarm init [dir]`                             | Scaffold a workspace from the swarm-starter-kit, conflict-safe           |
-| `swarm update [--check]`                       | Check whether the workspace drifted behind the latest kit — read-only (the apply is deferred) |
+| `swarm update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely |
 | `swarm check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg)      |
 | `swarm worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `swarm/<spec-slug>` branches           |
 | `swarm status`                                 | A read-only derived board over specs ← tasks ← reviews                   |
@@ -71,6 +71,7 @@ Each command is both a Unix part and an interactive flow:
 | `swarm promote <task>`                         | Scaffold a candidate finding from a finished task (no learning asserted) |
 | `swarm run <task> --agent <name>`              | Launch a prepared task on an external agent in its worktree; records the launch (no verdict) |
 | `swarm show <task\|spec\|review\|checks>`      | Project a parsed artifact as JSON — read-only                           |
+| `swarm agents emit --codex`                    | Generate Codex `.codex/agents/*.toml` from the swarm-agents definitions (prose discipline only) |
 | `swarm help`                                   | This reference                                                           |
 
 ### `swarm init`
@@ -86,18 +87,22 @@ diverged.
 
 ### `swarm update`
 
-Reads the workspace's `.agents/.swarm-version` pin (stamped by `swarm init`) and compares it to the
-latest kit's `VERSION`, resolved through the same source as `init` (the swarm-starter-kit by default,
-or `--from <path|url>`). Reports whether you're behind and prints the kit's `CHANGELOG` (what you'd
-gain by updating) — exit `0` up to date,
-`1` behind, `2` error. `--json` emits the report; **reads only — it writes nothing**. The 3-way-merge
-apply is deferred ([ADR-0091](https://github.com/jcosta33/swarm/blob/main/docs/adrs/0091-swarm-update-check.md)),
-so `--write` is refused with a pointer to the manual re-copy. The network lives here, never in the
-hermetic `swarm check`.
+`--check` (the default) reads the workspace's `.agents/.swarm-version` pin (stamped by `swarm init`)
+and compares it to the latest kit's `VERSION`, resolved through the same source as `init` (the
+swarm-starter-kit by default, or `--from <path|url>`). Reports whether you're behind and prints the
+kit's `CHANGELOG` (what you'd gain) — exit `0` up to date, `1` behind, `2` error; **writes nothing**.
+
+`--write` (alias `--apply`) lands the newer kit content via the conflict-safe copy engine, **scoped to
+the kit-owned guidance** (`templates/`, `.agents/skills/`, `advanced/`, `hooks/`) — never the
+adopter's specs, board, decisions, or `AGENTS.md`. A customized kit file is handled by
+`--on-conflict backup` (default; the user's copy → `*.swarm-bak`, the kit's lands), `overwrite`, or
+`skip`; the pin re-stamps on a full apply (a `skip` leaves it behind so a later `--check` still flags
+drift). It is **not** a 3-way line-merge ([ADR-0091](https://github.com/jcosta33/swarm/blob/main/docs/adrs/0091-swarm-update-check.md)).
+The network lives here, never in the hermetic `swarm check`.
 
 ### `swarm check`
 
-Runs the core checks of the contract (C001–C015) over the plain two-tier spec form. `swarm check
+Runs the core checks of the contract (C001–C017) over the plain two-tier spec form. `swarm check
 <file>` lints one spec; bare `swarm check` aggregates every `specs/*/spec.md` into one
 `clean`/`blocking` verdict (the CI merge gate) and flags workspace-validity issues (a leftover
 `{{placeholder}}`, a missing `templates/`). `--json` emits the diagnostics; no file is written.
