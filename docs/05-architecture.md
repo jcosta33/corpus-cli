@@ -1,6 +1,6 @@
 # TypeScript Module Architecture
 
-This document defines the **TypeScript-side module architecture** for the Swarm CLI.
+This document defines the **TypeScript-side module architecture** for the Corpus CLI.
 
 It explains:
 

@@ -1,6 +1,6 @@
 # Conventions
 
-This guide defines coding conventions and patterns for clarity, consistency, and maintainability in the Swarm CLI.
+This guide defines coding conventions and patterns for clarity, consistency, and maintainability in the Corpus CLI.
 
 ## TypeScript soundness
 

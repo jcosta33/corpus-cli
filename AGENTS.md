@@ -1,12 +1,12 @@
 # AGENTS.md — swarm-cli
 
 <!-- Always-loaded bootloader (aim ~100 lines). Procedures load on demand from
-     `.agents/skills/`. This is a CODE repo: the Swarm workspace governing it
+     `.agents/skills/`. This is a CODE repo: the Corpus workspace governing it
      is the sibling swarm-hq repo. -->
 
-## Swarm
+## Corpus
 
-- Swarm workspace: `../swarm-hq` — read the task packet you are given. Specs,
+- Corpus workspace: `../swarm-hq` — read the task packet you are given. Specs,
   tasks, reviews, findings, decisions, and the board live there, not here.
 - Implement against the packet: read its linked spec first; stay inside its
   scope (if a requirement can't be met as written, stop and say why instead of
@@ -15,7 +15,7 @@
   re-read your own diff as a skeptic before handoff. Guide:
   `.agents/skills/implement-task/`.
 - swarm-cli is the **reconcile-only harness** (swarm ADR-0077): it prepares,
-  checks, and reconciles the Swarm loop and never runs the model loop. Surface:
+  checks, and reconciles the Corpus loop and never runs the model loop. Surface:
   `init · update · check · worktree · status · review · new · pull · promote · run · show`
   (+ `help`) — each a direct command, most also an interactive TUI flow (`-i`;
   `swarm` with no args opens the dashboard).
@@ -68,5 +68,5 @@ whose command cannot be resolved reads Unverified, not Pass.
 
 ## Agent role
 
-You are an implementation or review worker. Swarm organizes the work; you perform
+You are an implementation or review worker. Corpus organizes the work; you perform
 the assigned task — and you never review your own implementation.

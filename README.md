@@ -1,12 +1,12 @@
 # swarm-cli
 
-The reference CLI for the [Swarm framework](https://github.com/jcosta33/swarm) — a **reconcile-only
+The reference CLI for the [Corpus framework](https://github.com/jcosta33/swarm) — a **reconcile-only
 harness** for spec-driven agent work. It implements the checks contract in
 [`swarm/checks/checks.yaml`](https://github.com/jcosta33/swarm/blob/main/checks/checks.yaml); its own
 specs and reviews live in the family workspace, [swarm-hq](https://github.com/jcosta33/swarm-hq)
 (the design of record is `swarm/docs/adrs/0077`).
 
-swarm-cli **prepares, checks, and reconciles** the work around the Swarm loop — it never runs the
+swarm-cli **prepares, checks, and reconciles** the work around the Corpus loop — it never runs the
 model loop itself. Every flow is available two ways: a **direct, scriptable command** and a
 **beautiful interactive TUI**.
 
@@ -37,7 +37,7 @@ produces the `dist/` bundle. (A published package under a non-colliding name wil
 
 ```bash
 swarm                       # open the interactive dashboard
-swarm init                  # scaffold a Swarm workspace from the starter kit
+swarm init                  # scaffold a Corpus workspace from the starter kit
 swarm check                 # lint every spec in the workspace
 swarm status                # the workspace board — specs, tasks, reviews, gaps
 swarm new task --from SPEC-checkout --scope AC-001,AC-002
@@ -78,7 +78,7 @@ Each command is both a Unix part and an interactive flow:
 
 Clones the [swarm-starter-kit](https://github.com/jcosta33/swarm-starter-kit) and copies it into the
 target — **never overwriting your content by default**. An existing file is _skipped_ (kept), unless
-you pass `--force` or `--on-conflict overwrite|backup`. `.gitignore` and `AGENTS.md` _merge_ a Swarm
+you pass `--force` or `--on-conflict overwrite|backup`. `.gitignore` and `AGENTS.md` _merge_ a Corpus
 block rather than skip. An empty directory gets the full workspace; an existing code repo gets the
 minimal footprint (`--workspace` / `--footprint` force the layout). `--from <path|url>` overrides the
 kit source. Re-running is conflict-safe: unchanged kit files are no-ops (a clean re-run), and any
@@ -111,7 +111,7 @@ Runs the core checks of the contract (C001–C017) over the plain two-tier spec 
 
 `create <slug>` makes an isolated worktree on `swarm/<spec-slug>` off the base branch (idempotent);
 `list` shows the swarm worktrees; `remove <slug> [--force]` tears one down; `prune` clears stale
-entries. Works in any git repo — no Swarm workspace required.
+entries. Works in any git repo — no Corpus workspace required.
 
 ### `swarm status`
 
@@ -135,4 +135,4 @@ deciding Pass/Fail are the human's (and a later milestone's) job.
 
 - [`AGENTS.md`](./AGENTS.md) — the bootloader for agents working on this repo
 - [`.agents/repo-conventions.md`](./.agents/repo-conventions.md) — the module architecture + soundness rules
-- The Swarm framework: [swarm](https://github.com/jcosta33/swarm) · the kit: [swarm-starter-kit](https://github.com/jcosta33/swarm-starter-kit) · the workspace: [swarm-hq](https://github.com/jcosta33/swarm-hq)
+- The Corpus framework: [swarm](https://github.com/jcosta33/swarm) · the kit: [swarm-starter-kit](https://github.com/jcosta33/swarm-starter-kit) · the workspace: [swarm-hq](https://github.com/jcosta33/swarm-hq)
