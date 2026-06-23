@@ -1,4 +1,4 @@
-// The pure reconcile logic for `swarm review` (M2, AC-018/019/020/021): plain data in, facts out —
+// The pure reconcile logic for `corpus review` (M2, AC-018/019/020/021): plain data in, facts out —
 // no I/O, no verdict. The engine (reconcileReview) does the filesystem/git reads and hands the
 // extracted records here; this service owns the set-difference + packet-structure semantics, the way
 // checksContract owns the spec-rule semantics. Forbidden to other modules (a Core service, private
@@ -58,7 +58,7 @@ export type SelfReportMismatch = Readonly<{
     claimedNotInDiff: readonly string[]; // Run summary claims it changed; the diff does not show it
     inDiffNotClaimed: readonly string[]; // the diff shows it changed; the Run summary never mentions it
     outsideScope: readonly string[]; // a changed path outside the declared Affected-areas scope
-    // The Run summary listed no machine-checkable file paths while the diff did change files (swarm-hq
+    // The Run summary listed no machine-checkable file paths while the diff did change files (corpus-hq
     // #44): a prose summary that can't be reconciled. The `inDiffNotClaimed` flood is suppressed and
     // this is surfaced once instead — an informational note, not a finding (it never trips the level).
     runSummaryUnparsed: boolean;
@@ -86,7 +86,7 @@ function is_under_any_area(path: string, areas: readonly string[]): boolean {
 
 export function reconcile_self_report(input: SelfReportInput): SelfReportMismatch {
     // A prose Run summary parses to zero claimed paths; reconciling it against a non-empty diff would
-    // flag every changed file as `inDiffNotClaimed` (the swarm-hq #44 flood). When there is nothing
+    // flag every changed file as `inDiffNotClaimed` (the corpus-hq #44 flood). When there is nothing
     // machine-checkable to reconcile against, suppress that class and surface a single note instead.
     // `outsideScope` is independent of the claim set (diff vs Affected areas), so it still computes.
     const runSummaryUnparsed = input.claimedChangedFiles.length === 0 && input.diffChangedFiles.length > 0;
@@ -105,10 +105,7 @@ export function reconcile_self_report(input: SelfReportInput): SelfReportMismatc
 // since a protected path may lie INSIDE the declared Affected areas. Matched PER-ENTRY: an empty
 // Do-not-change list must surface nothing, whereas `is_under_any_area([])` returns true ("everything in
 // scope") — the inverse of what is wanted here. So `.some` over the entries yields false on an empty list.
-export function do_not_change_touched(
-    diffChangedFiles: readonly string[],
-    doNotChange: readonly string[]
-): string[] {
+export function do_not_change_touched(diffChangedFiles: readonly string[], doNotChange: readonly string[]): string[] {
     return [...new Set(diffChangedFiles)]
         .filter((path) => doNotChange.some((entry) => is_under_any_area(path, [entry])))
         .sort();
@@ -150,9 +147,7 @@ export function packet_structural_facts(packet: ReviewPacket): PacketStructuralF
     const statusPassContradicted =
         packet.status === 'pass' &&
         (packet.coverageRows.length === 0 || packet.coverageRows.some((row) => row.result !== 'Pass'));
-    const missingSections = REQUIRED_REVIEW_SECTIONS.filter(
-        (section) => !sectionSet.has(section.toLowerCase())
-    );
+    const missingSections = REQUIRED_REVIEW_SECTIONS.filter((section) => !sectionSet.has(section.toLowerCase()));
 
     return { badResultCells, badStatus, statusPassContradicted, missingSections };
 }

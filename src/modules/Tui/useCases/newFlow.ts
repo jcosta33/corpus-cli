@@ -100,7 +100,7 @@ async function new_task(prompter: Prompter, workspaceDir: string): Promise<numbe
 }
 
 export async function run_new_flow(prompter: Prompter, deps: NewFlowDeps): Promise<number> {
-    prompter.intro('swarm new');
+    prompter.intro('corpus new');
     const type = await prompter.select({
         message: 'What would you like to create?',
         options: [

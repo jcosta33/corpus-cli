@@ -59,9 +59,9 @@ let repo: string;
 const git = (args: string[], cwd = repo) => execFileSync('git', args, { cwd, encoding: 'utf8' });
 
 // Build a finished-run workspace: a repo with specs/ + tasks/, and a launched worktree on
-// swarm/feat/feat carrying a committed change.
+// corpus/feat/feat carrying a committed change.
 beforeEach(() => {
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-reviewflow-')));
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-reviewflow-')));
     git(['init']);
     git(['config', 'user.email', 't@e.com']);
     git(['config', 'user.name', 'T']);
@@ -74,7 +74,7 @@ beforeEach(() => {
 
     const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
     const wt = join(repo, '.worktrees', 'feat-feat');
-    git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+    git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base]);
     writeFileSync(join(wt, 'src-a.ts'), 'x'); // an uncommitted change in the run's worktree
 });
 afterEach(() => {
@@ -115,7 +115,10 @@ describe('run_review_flow (AC-027)', () => {
         // checkout (whose copy still holds the blank cut packet pre-merge).
         writeFileSync(
             join(repo, '.worktrees', 'feat-feat', 'tasks', 'TASK-feat.md'),
-            TASK.replace('- `src`', '- `src-a.ts`').replace('- Changed files: `src/a.ts`', '- Changed files: `src-a.ts`')
+            TASK.replace('- `src`', '- `src-a.ts`').replace(
+                '- Changed files: `src/a.ts`',
+                '- Changed files: `src-a.ts`'
+            )
         );
         mkdirSync(join(repo, 'reviews'), { recursive: true });
         // Each Pass row carries a matching `verify` block (cmd = the spec's named command, result=pass)
@@ -136,7 +139,7 @@ describe('run_review_flow (AC-027)', () => {
     });
 
     it('errors cleanly outside a git repo', async () => {
-        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-norepo-')));
+        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-norepo-')));
         try {
             const p = create_mock_prompter({});
             expect(await run_review_flow(p, { workspaceDir: notRepo })).toBe(2);

@@ -23,7 +23,7 @@ export type WorkspaceFinding = Readonly<{
     code: 'C002' | 'C017' | 'placeholder' | 'missing-template' | 'agents-oversize';
     // SW-006: an unfilled {{placeholder}} in a freshly-scaffolded AGENTS.md is a "finish setup" nudge,
     // not broken work — it must NOT block the gate on day one (the kit's own AGENTS.md ships with
-    // placeholders, so `swarm check` right after `swarm init` would otherwise greet a new user with a
+    // placeholders, so `corpus check` right after `corpus init` would otherwise greet a new user with a
     // red blocking verdict on boilerplate). A duplicate id (C002) or a missing templates/ tree is a
     // real structural defect and stays blocking.
     level: 'blocking' | 'warning';

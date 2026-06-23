@@ -52,7 +52,7 @@ describe('parse_task_packet — scope (AC-017)', () => {
         expect(parse_task_packet('# Task\n\nno frontmatter\n').scope).toEqual([]);
     });
 
-    it('reads a wrapped flow-style scope list across continuation lines (swarm-hq #15)', () => {
+    it('reads a wrapped flow-style scope list across continuation lines (corpus-hq #15)', () => {
         const wrapped = `---\ntype: task\nid: TASK-feat\nscope: [AC-001,\n  AC-002,\n  AC-003]\nstatus: review-ready\n---\n# Task\n`;
         expect(parse_task_packet(wrapped).scope).toEqual(['AC-001', 'AC-002', 'AC-003']);
     });
@@ -70,7 +70,7 @@ describe('parse_task_packet — scope (AC-017)', () => {
     });
 });
 
-describe('parse_task_packet — ReDoS guard (swarm-hq #15)', () => {
+describe('parse_task_packet — ReDoS guard (corpus-hq #15)', () => {
     it('parses a Changed-files line carrying a huge path-shaped token in well under a second', () => {
         const huge = `${'a/'.repeat(80000)}:`; // a non-matching token that was O(n²) under the old PATH_LIKE
         const packet = `---\ntype: task\nscope: [AC-001]\n---\n\n## Run summary\n\n- Changed files: ${huge}\n`;
@@ -94,7 +94,7 @@ scope: [AC-001]
 ---
 ## Affected areas
 
-- \`swarm-cli:src/x.ts\`
+- \`corpus-cli:src/x.ts\`
 `);
         expect(p.affectedAreas).toEqual(['src/x.ts']);
     });
@@ -198,7 +198,7 @@ scope: [AC-001]
         expect(heading.claimedChangedFiles).toEqual(['src/a.ts', 'src/b.ts']);
     });
 
-    it('a list-item Changed-files label owns only its OWN sub-bullets, never a sibling bullet\'s list', () => {
+    it("a list-item Changed-files label owns only its OWN sub-bullets, never a sibling bullet's list", () => {
         const packet = parse_task_packet(`---
 scope: [AC-001]
 ---

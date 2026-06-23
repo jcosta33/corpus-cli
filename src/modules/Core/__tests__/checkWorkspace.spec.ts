@@ -9,7 +9,7 @@ import { check_workspace } from '../useCases/checkWorkspace.ts';
 let ws: string;
 
 beforeEach(() => {
-    ws = mkdtempSync(join(tmpdir(), 'swarm-ws-'));
+    ws = mkdtempSync(join(tmpdir(), 'corpus-ws-'));
 });
 
 afterEach(() => {

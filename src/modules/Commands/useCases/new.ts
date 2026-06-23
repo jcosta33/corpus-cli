@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-// `swarm new <type> …` — the prepare engine's command surface (AC-013, D-004):
-//   swarm new task --from <SPEC-id> [--scope AC-001,AC-002]   cut a task packet (scope copied, never invented)
-//   swarm new spec <slug> [--title <t>] [--owner <o>]          scaffold a fresh draft spec
-//   swarm new                                                  the interactive flow (TTY)
+// `corpus new <type> …` — the prepare engine's command surface (AC-013, D-004):
+//   corpus new task --from <SPEC-id> [--scope AC-001,AC-002]   cut a task packet (scope copied, never invented)
+//   corpus new spec <slug> [--title <t>] [--owner <o>]          scaffold a fresh draft spec
+//   corpus new                                                  the interactive flow (TTY)
 
 import {
     project,
@@ -35,7 +35,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         const fromFlag = flags.get('from');
         if (typeof fromFlag !== 'string') {
             return emit_error(
-                usage_error('usage: swarm new task --from <SPEC-id> [--scope AC-001,AC-002] [--id <TASK-id>]'),
+                usage_error('usage: corpus new task --from <SPEC-id> [--scope AC-001,AC-002] [--id <TASK-id>]'),
                 json
             );
         }
@@ -86,7 +86,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     if (type === 'spec') {
         const slug = positional[1];
         if (slug === undefined) {
-            return emit_error(usage_error('usage: swarm new spec <slug> [--title <t>] [--owner <o>]'), json);
+            return emit_error(usage_error('usage: corpus new spec <slug> [--title <t>] [--owner <o>]'), json);
         }
         const titleFlag = flags.get('title');
         const ownerFlag = flags.get('owner');
@@ -112,7 +112,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     if (type === 'change-plan') {
         const slug = positional[1];
         if (slug === undefined) {
-            return emit_error(usage_error('usage: swarm new change-plan <slug> [--title <t>] [--owner <o>]'), json);
+            return emit_error(usage_error('usage: corpus new change-plan <slug> [--title <t>] [--owner <o>]'), json);
         }
         const titleFlag = flags.get('title');
         const ownerFlag = flags.get('owner');
@@ -131,7 +131,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     if (type === undefined) {
         return emit_error(
             usage_error(
-                'usage: swarm new <task|spec|change-plan> — `new task --from <SPEC-id> [--scope …]`, `new spec <slug>`, or `new change-plan <slug>`'
+                'usage: corpus new <task|spec|change-plan> — `new task --from <SPEC-id> [--scope …]`, `new spec <slug>`, or `new change-plan <slug>`'
             ),
             json
         );

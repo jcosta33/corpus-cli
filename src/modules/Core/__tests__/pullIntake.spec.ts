@@ -13,16 +13,20 @@ let ws: string;
 
 // A fetcher stub that returns a fixed gh issue — the engine takes the fetcher injected, so no `gh`
 // process is spawned in unit tests.
-const fetch_ok = (title: string, body: string): GhFetcher => () => ok({ title, body });
+const fetch_ok =
+    (title: string, body: string): GhFetcher =>
+    () =>
+        ok({ title, body });
 // A fetcher that fails (no gh / no such issue) — the engine must fall back to the paste placeholder.
-const fetch_fail: GhFetcher = (ref) => err(createAppError('GhFetchFailed', `could not fetch ${ref}`, { ref, stderr: '' }));
+const fetch_fail: GhFetcher = (ref) =>
+    err(createAppError('GhFetchFailed', `could not fetch ${ref}`, { ref, stderr: '' }));
 // A fetcher that must never be called — for non-gh refs.
 const fetch_never: GhFetcher = () => {
     throw new Error('fetch must not be attempted for a non-gh ref');
 };
 
 beforeEach(() => {
-    ws = mkdtempSync(join(tmpdir(), 'swarm-pull-'));
+    ws = mkdtempSync(join(tmpdir(), 'corpus-pull-'));
 });
 afterEach(() => {
     rmSync(ws, { recursive: true, force: true });
@@ -33,18 +37,18 @@ describe('pull_intake — verbatim intake snapshot, never a spec (AC-001)', () =
         const report = assertOk(
             pull_intake({
                 workspaceDir: ws,
-                ref: 'jcosta33/swarm-cli#42',
+                ref: 'jcosta33/corpus-cli#42',
                 fetchGhIssue: fetch_ok('Wire the gate', 'The gate must stay green.\n\n- run vitest'),
             })
         );
-        expect(report.slug).toBe('jcosta33-swarm-cli-42');
+        expect(report.slug).toBe('jcosta33-corpus-cli-42');
         expect(report.fetched).toBe(true);
-        expect(report.path).toBe(join(ws, 'intake', 'jcosta33-swarm-cli-42.md'));
+        expect(report.path).toBe(join(ws, 'intake', 'jcosta33-corpus-cli-42.md'));
 
         const content = readFileSync(report.path, 'utf8');
         expect(content).toContain('type: intake');
         expect(content).toContain('source: gh-issue');
-        expect(content).toContain('url: jcosta33/swarm-cli#42');
+        expect(content).toContain('url: jcosta33/corpus-cli#42');
         expect(content).toMatch(/captured: \d{4}-\d{2}-\d{2}/);
         expect(content).toContain('# Intake: Wire the gate');
         // The upstream body is carried VERBATIM (un-normalized), markdown bullets and all.
@@ -52,9 +56,7 @@ describe('pull_intake — verbatim intake snapshot, never a spec (AC-001)', () =
     });
 
     it('writes NO spec — only the one intake file appears under the workspace', () => {
-        assertOk(
-            pull_intake({ workspaceDir: ws, ref: '7', fetchGhIssue: fetch_ok('A title', 'A body') })
-        );
+        assertOk(pull_intake({ workspaceDir: ws, ref: '7', fetchGhIssue: fetch_ok('A title', 'A body') }));
         expect(existsSync(join(ws, 'specs'))).toBe(false);
         expect(readdirSync(join(ws, 'intake'))).toEqual(['issue-7.md']);
     });
@@ -70,9 +72,7 @@ describe('pull_intake — verbatim intake snapshot, never a spec (AC-001)', () =
     });
 
     it('writes a paste placeholder for a non-gh ref and never attempts a fetch', () => {
-        const report = assertOk(
-            pull_intake({ workspaceDir: ws, ref: 'JIRA-123', fetchGhIssue: fetch_never })
-        );
+        const report = assertOk(pull_intake({ workspaceDir: ws, ref: 'JIRA-123', fetchGhIssue: fetch_never }));
         expect(report.fetched).toBe(false);
         expect(report.slug).toBe('jira-123');
         const content = readFileSync(report.path, 'utf8');
@@ -86,13 +86,13 @@ describe('pull_intake — verbatim intake snapshot, never a spec (AC-001)', () =
             return ok({ title: 'T', body: 'B' });
         };
         const report = assertOk(
-            pull_intake({ workspaceDir: ws, ref: 'jcosta33/swarm-cli#42', fetchGhIssue: capture })
+            pull_intake({ workspaceDir: ws, ref: 'jcosta33/corpus-cli#42', fetchGhIssue: capture })
         );
         // gh rejects the `owner/repo#N` shorthand, so the fetcher is handed the equivalent URL …
-        expect(seen).toBe('https://github.com/jcosta33/swarm-cli/issues/42');
+        expect(seen).toBe('https://github.com/jcosta33/corpus-cli/issues/42');
         // … while the recorded url + the slug keep the ref the user typed.
-        expect(report.slug).toBe('jcosta33-swarm-cli-42');
-        expect(readFileSync(report.path, 'utf8')).toContain('url: jcosta33/swarm-cli#42');
+        expect(report.slug).toBe('jcosta33-corpus-cli-42');
+        expect(readFileSync(report.path, 'utf8')).toContain('url: jcosta33/corpus-cli#42');
     });
 
     it('passes a bare number / URL ref through to the fetcher unchanged', () => {
@@ -136,9 +136,9 @@ describe('pull_intake — write-safety (AC-004)', () => {
         const before = readFileSync(join(ws, 'intake', 'issue-5.md'), 'utf8');
 
         // Second pull over the same target errors, and the file is byte-unchanged.
-        expect(assertErr(pull_intake({ workspaceDir: ws, ref: '5', fetchGhIssue: fetch_ok('two', 'second') }))._tag).toBe(
-            'FileExists'
-        );
+        expect(
+            assertErr(pull_intake({ workspaceDir: ws, ref: '5', fetchGhIssue: fetch_ok('two', 'second') }))._tag
+        ).toBe('FileExists');
         expect(readFileSync(join(ws, 'intake', 'issue-5.md'), 'utf8')).toBe(before);
 
         // --force replaces exactly that one file.

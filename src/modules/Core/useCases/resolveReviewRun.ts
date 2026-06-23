@@ -42,7 +42,7 @@ function find_review_packet(workspaceDir: string, taskId: string): string | null
 
 export function resolve_review_run(input: ResolveReviewRunInput): Result<ReconcileReviewInput, AppError> {
     // Resolve the task by either the bare slug or the TASK- id to its canonical file + frontmatter `id`
-    // (so `swarm review pastebin` and `swarm review TASK-pastebin` both work without a rename).
+    // (so `corpus review pastebin` and `corpus review TASK-pastebin` both work without a rename).
     const task = resolve_task(input.workspaceDir, input.task);
     if (task === null) {
         return err(
@@ -67,14 +67,14 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
         return err(
             usage_error(
                 // The suggestion must name the per-task branch this review looks for. The old message
-                // suggested `swarm worktree create ${spec.slug}` (the whole-spec form), which git refuses
-                // once any `swarm/${spec.slug}/<task>` ref exists (a ref can't be both a leaf and a
+                // suggested `corpus worktree create ${spec.slug}` (the whole-spec form), which git refuses
+                // once any `corpus/${spec.slug}/<task>` ref exists (a ref can't be both a leaf and a
                 // directory) — so following it was impossible (SW-005). Spell the exact --task form.
                 `no worktree found for ${task.id} — create it with ` +
-                    `\`swarm worktree create ${spec.slug} --task ${tail}\` first ` +
-                    `(that makes the branch \`swarm/${spec.slug}/${tail}\` this review reconciles against). ` +
+                    `\`corpus worktree create ${spec.slug} --task ${tail}\` first ` +
+                    `(that makes the branch \`corpus/${spec.slug}/${tail}\` this review reconciles against). ` +
                     `If the code lives in a separate repo from this workspace, point the review at it with ` +
-                    `\`swarm review ${input.task} --repo <path-to-code-repo>\`.`
+                    `\`corpus review ${input.task} --repo <path-to-code-repo>\`.`
             )
         );
     }
@@ -125,8 +125,8 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
         task: task.id,
         taskPacketSource: reviewedPacketSource,
         specSource: readFileSync(specForReconcile.path, 'utf8'),
-        // Match the review by the task's canonical frontmatter `id` (the SAME key `swarm status` matches),
-        // not the raw CLI arg — so `swarm review` and `swarm status` agree on one `task:` value rather than
+        // Match the review by the task's canonical frontmatter `id` (the SAME key `corpus status` matches),
+        // not the raw CLI arg — so `corpus review` and `corpus status` agree on one `task:` value rather than
         // demanding opposite forms in the same field.
         reviewPacketSource: find_review_packet(input.workspaceDir, task.id),
         diffChangedFiles,
@@ -135,6 +135,9 @@ export function resolve_review_run(input: ResolveReviewRunInput): Result<Reconci
         // self-report was read from (R5-I06 — the worktree branch under review, or the workspace checkout
         // in a split-repo layout), so a worker who edited the wrong copy sees why the reconcile differs.
         base,
-        packetRef: readFromWorktree && worktree.branch !== null ? `the worktree branch ${worktree.branch}` : 'this workspace checkout',
+        packetRef:
+            readFromWorktree && worktree.branch !== null
+                ? `the worktree branch ${worktree.branch}`
+                : 'this workspace checkout',
     });
 }

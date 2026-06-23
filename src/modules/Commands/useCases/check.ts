@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-// `swarm check [file]` — the check engine's command surface (AC-005/006/008).
-//   swarm check <spec-file>   lint one spec
-//   swarm check               render the whole-workspace verdict (D-001)
-//   swarm check -i            the interactive flow (AC-015), TTY + not --json only
+// `corpus check [file]` — the check engine's command surface (AC-005/006/008).
+//   corpus check <spec-file>   lint one spec
+//   corpus check               render the whole-workspace verdict (D-001)
+//   corpus check -i            the interactive flow (AC-015), TTY + not --json only
 // Direct output + exit codes flow through the shared unixOutcome contract (AC-001).
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -61,7 +61,10 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
             });
         }
         const source = readFileSync(file, 'utf8');
-        const head = source.split(/\r\n|[\r\n]/).slice(0, 12).join('\n');
+        const head = source
+            .split(/\r\n|[\r\n]/)
+            .slice(0, 12)
+            .join('\n');
         // A review packet (`type: review`) runs the C012 coverage + C013 verify-evidence-binding
         // reconcile (AC-028 / AC-005); a spec runs the core spec checks. The review path resolves the
         // task + source spec from the cwd workspace.
@@ -78,7 +81,11 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         if (/^type:\s*change-plan\s*$/m.test(head)) {
             const specFiles = [...find_workspace_spec_files(cwd), ...find_sibling_spec_files(file)];
             return project({
-                result: check_change_plan({ source, path: file, spec_ref_resolves: build_spec_ref_resolver(specFiles) }),
+                result: check_change_plan({
+                    source,
+                    path: file,
+                    spec_ref_resolves: build_spec_ref_resolver(specFiles),
+                }),
                 json,
                 render: format_check_report,
             });

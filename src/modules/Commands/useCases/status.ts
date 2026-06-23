@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// `swarm status` — the reconcile engine's command surface (AC-011): a read-only derived board over
+// `corpus status` — the reconcile engine's command surface (AC-011): a read-only derived board over
 // the workspace artifacts (specs ← tasks ← reviews), the review-ready-without-review list, and the
 // needs-human list. Writes nothing. `-i` opens the framed interactive board.
 

@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, realpathSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from 'fs';
+import {
+    mkdtempSync,
+    mkdirSync,
+    rmSync,
+    realpathSync,
+    writeFileSync,
+    readFileSync,
+    readdirSync,
+    statSync,
+    existsSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { join, relative } from 'path';
 import { createHash } from 'crypto';
@@ -137,7 +147,7 @@ function snapshot(dir: string): string {
 }
 
 // Build a finished-run workspace: repo with specs/ + tasks/ (+ optional reviews/), and a launched
-// worktree on swarm/feat/feat carrying both a committed and an uncommitted change.
+// worktree on corpus/feat/feat carrying both a committed and an uncommitted change.
 function buildRun(opts: { reviewRows?: string; reviewStatus?: string; dirtyWorktree?: boolean } = {}): string {
     git(['init']);
     git(['config', 'user.email', 't@e.com']);
@@ -155,7 +165,7 @@ function buildRun(opts: { reviewRows?: string; reviewStatus?: string; dirtyWorkt
 
     const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
     const wt = join(repo, '.worktrees', 'feat-feat');
-    git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+    git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base]);
     // a committed change vs base
     writeFileSync(join(wt, 'committed.ts'), 'a');
     git(['add', 'committed.ts'], wt);
@@ -167,7 +177,7 @@ function buildRun(opts: { reviewRows?: string; reviewStatus?: string; dirtyWorkt
 }
 
 beforeEach(() => {
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-review-cmd-')));
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-review-cmd-')));
 });
 afterEach(() => {
     rmSync(repo, { recursive: true, force: true });
@@ -181,14 +191,14 @@ describe('review command — finished-run reconcile (AC-017/024)', () => {
         expect(out).toContain('review TASK-feat');
         expect(out).toContain('uncovered'); // AC-002
         // R5-I06: the human output names WHERE the self-report packet was read from (the worktree branch).
-        expect(out).toContain('reconciled the task packet from the worktree branch swarm/feat/feat');
+        expect(out).toContain('reconciled the task packet from the worktree branch corpus/feat/feat');
     });
 
     it('hints when the diff is empty — the merged-branch zero-diff trap (R5-I04)', async () => {
         // A clean worktree reviewed against its OWN tip has nothing in the diff (the merged-branch shape):
         // every claim would read claimed-not-changed, so the command points at pre-merge review / a base.
         buildRun({ reviewRows: '| AC-001 | Pass | pasted | no |', dirtyWorktree: false });
-        const { out } = await capture(() => run(['TASK-feat', '--base', 'swarm/feat/feat'], repo));
+        const { out } = await capture(() => run(['TASK-feat', '--base', 'corpus/feat/feat'], repo));
         expect(out).toContain('0 changed files');
         expect(out).toContain('already merged');
     });
@@ -233,7 +243,7 @@ describe('review command — finished-run reconcile (AC-017/024)', () => {
         git(['commit', '-m', 'init']);
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
         const wt = join(repo, '.worktrees', 'feat-feat');
-        git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+        git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base]);
         writeFileSync(join(wt, 'committed.ts'), 'a');
         git(['add', 'committed.ts'], wt);
         git(['commit', '-m', 'work'], wt);
@@ -262,7 +272,7 @@ describe('review command — finished-run reconcile (AC-017/024)', () => {
         // no task arg
         expect((await capture(() => run([], repo))).code).toBe(2);
         // outside a git repo
-        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-norepo-')));
+        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-norepo-')));
         try {
             expect((await capture(() => run(['TASK-feat'], notRepo))).code).toBe(2);
         } finally {
@@ -425,7 +435,7 @@ describe('review command — the draft writer (W4b, AC-001/002/003/004/005)', ()
         expect(snapshot(wt)).toBe(wtBefore);
     });
 
-    it('swarm check on a freshly written draft reports no structural finding beyond all-Unverified coverage (AC-005)', async () => {
+    it('corpus check on a freshly written draft reports no structural finding beyond all-Unverified coverage (AC-005)', async () => {
         buildRun();
         await capture(() => run(['TASK-feat', '--write'], repo));
         const { code, out } = await capture(() => runCheck([draftPath(), '--json'], repo));
@@ -462,7 +472,7 @@ describe('review command — the draft writer (W4b, AC-001/002/003/004/005)', ()
         git(['commit', '-m', 'init']);
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
         const wt = join(repo, '.worktrees', 'feat-feat');
-        git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+        git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base]);
         writeFileSync(join(wt, 'committed.ts'), 'a');
         git(['add', 'committed.ts'], wt);
         git(['commit', '-m', 'work'], wt);

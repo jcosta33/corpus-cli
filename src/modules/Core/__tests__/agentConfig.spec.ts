@@ -3,10 +3,10 @@ import { describe, it, expect } from 'vitest';
 import { parse_agent_config, resolve_adapter } from '../services/agentConfig.ts';
 import { isErr } from '../../../infra/errors/result.ts';
 
-// The documented `.swarm/config.yaml` shape (future-cli.md "Agent adapters").
+// The documented `.corpus/config.yaml` shape (future-cli.md "Agent adapters").
 const CONFIG = `knowledge:
   type: git
-  path: ../swarm-workspace
+  path: ../corpus-workspace
 project:
   id: my-app
 agents:

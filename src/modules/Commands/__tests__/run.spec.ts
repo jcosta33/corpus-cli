@@ -16,7 +16,7 @@ import { join, relative } from 'path';
 import { execFileSync } from 'child_process';
 
 // Repo-relative file paths under `dir`, skipping `.git` and `.worktrees` (the agent's space) — used to
-// enumerate swarm's own write-set and assert it is exactly the run record (AC-002).
+// enumerate corpus's own write-set and assert it is exactly the run record (AC-002).
 function filesUnder(dir: string, base = dir): string[] {
     const out: string[] = [];
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -35,18 +35,18 @@ function filesUnder(dir: string, base = dir): string[] {
 
 import { run } from '../useCases/run.ts';
 
-// SPEC-swarm-cli-run. `swarm run <task> --agent <name>` launches a prepared task on an agent in its
+// SPEC-corpus-cli-run. `corpus run <task> --agent <name>` launches a prepared task on an agent in its
 // worktree and records the launch — verified end-to-end with a STUB adapter (a tiny shell script), so
 // no real agent CLI / credentials are needed. The stub records where it ran (cwd.txt) and the
 // instruction it received (arg.txt) into its working directory (the worktree), which doubles as proof
-// the AGENT did the worktree writes, not swarm (AC-002).
+// the AGENT did the worktree writes, not corpus (AC-002).
 
 const SPEC = `---
 type: spec
 id: SPEC-feat
 status: ready
 sources:
-  - ../../../swarm/docs/adrs/0077-swarm-cli-reconcile-only-harness.md
+  - ../../../corpus/docs/adrs/0077-corpus-cli-reconcile-only-harness.md
 ---
 
 ## Requirements
@@ -105,7 +105,7 @@ function capture(fn: () => number): { out: string; err: string; code: number } {
     }
 }
 
-// Build a prepared task: a repo+workspace with specs/ + tasks/, a `.swarm/config.yaml` whose `stub`
+// Build a prepared task: a repo+workspace with specs/ + tasks/, a `.corpus/config.yaml` whose `stub`
 // adapter points at a recording shell script, and (unless suppressed) the task's worktree.
 function buildRun(
     opts: {
@@ -135,9 +135,9 @@ function buildRun(
     chmodSync(stub, 0o755);
 
     if (opts.withConfig !== false) {
-        mkdirSync(join(repo, '.swarm'), { recursive: true });
+        mkdirSync(join(repo, '.corpus'), { recursive: true });
         writeFileSync(
-            join(repo, '.swarm', 'config.yaml'),
+            join(repo, '.corpus', 'config.yaml'),
             `agents:\n` +
                 `  default: ${opts.agentDefault ?? 'stub'}\n` +
                 `  available: [stub]\n` +
@@ -154,7 +154,7 @@ function buildRun(
     let worktree = join(repo, '.worktrees', 'feat-feat');
     if (opts.withWorktree !== false) {
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
-        git(['worktree', 'add', '-b', 'swarm/feat/feat', worktree, base]);
+        git(['worktree', 'add', '-b', 'corpus/feat/feat', worktree, base]);
     } else {
         worktree = '';
     }
@@ -162,13 +162,13 @@ function buildRun(
 }
 
 beforeEach(() => {
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-run-')));
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-run-')));
 });
 afterEach(() => {
     rmSync(repo, { recursive: true, force: true });
 });
 
-describe('swarm run — launch (AC-001/002/004)', () => {
+describe('corpus run — launch (AC-001/002/004)', () => {
     it('launches the named adapter in the task worktree, delivering the startup instruction (AC-001)', () => {
         const { worktree } = buildRun({ instruction: 'GO-NOW' });
         const { code } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
@@ -179,16 +179,16 @@ describe('swarm run — launch (AC-001/002/004)', () => {
         expect(readFileSync(join(worktree, 'arg.txt'), 'utf8')).toBe('GO-NOW');
     });
 
-    it('writes no code of its own — the worktree writes are the agent stub`s; swarm`s only write is the run record (AC-002)', () => {
+    it('writes no code of its own — the worktree writes are the agent stub`s; corpus`s only write is the run record (AC-002)', () => {
         const { worktree } = buildRun();
         const before = filesUnder(repo);
         capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
-        // The files in the worktree were created by the stub (its cwd), not by swarm.
+        // The files in the worktree were created by the stub (its cwd), not by corpus.
         expect(existsSync(join(worktree, 'cwd.txt'))).toBe(true);
-        // Enumerate swarm's full write-set under the repo (the worktree — the agent's space — excluded):
-        // the ONLY new path is the run record. No spec/review/status/source file is authored by swarm.
+        // Enumerate corpus's full write-set under the repo (the worktree — the agent's space — excluded):
+        // the ONLY new path is the run record. No spec/review/status/source file is authored by corpus.
         const added = filesUnder(repo).filter((p) => !before.includes(p));
-        expect(added).toEqual([join('.swarm', 'work', 'feat.json')]);
+        expect(added).toEqual([join('.corpus', 'work', 'feat.json')]);
     });
 
     it('launches with no argument when the adapter`s startup_instruction is empty (AC-001)', () => {
@@ -200,17 +200,17 @@ describe('swarm run — launch (AC-001/002/004)', () => {
         expect(readFileSync(join(worktree, 'arg.txt'), 'utf8')).toBe('');
     });
 
-    it('records the launch envelope under .swarm/work/<task>.json (AC-004)', () => {
+    it('records the launch envelope under .corpus/work/<task>.json (AC-004)', () => {
         const { worktree } = buildRun();
         capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
-        const recordPath = join(repo, '.swarm', 'work', 'feat.json');
+        const recordPath = join(repo, '.corpus', 'work', 'feat.json');
         expect(existsSync(recordPath)).toBe(true);
         const record = JSON.parse(readFileSync(recordPath, 'utf8'));
         expect(record).toMatchObject({
             task_id: 'TASK-feat',
             adapter: 'stub',
             worktree,
-            branch: 'swarm/feat/feat',
+            branch: 'corpus/feat/feat',
             source: 'SPEC-feat',
             exit: 0,
         });
@@ -233,7 +233,7 @@ describe('swarm run — launch (AC-001/002/004)', () => {
     });
 });
 
-describe('swarm run — adapter resolution (AC-005)', () => {
+describe('corpus run — adapter resolution (AC-005)', () => {
     it('uses agents.default when --agent is omitted', () => {
         const { worktree } = buildRun({ agentDefault: 'stub' });
         const { code } = capture(() => run(['TASK-feat'], repo));
@@ -247,55 +247,55 @@ describe('swarm run — adapter resolution (AC-005)', () => {
         expect(code).toBe(2);
         expect(err).toMatch(/unknown agent "nope"/);
         expect(existsSync(join(worktree, 'cwd.txt'))).toBe(false); // never launched
-        expect(existsSync(join(repo, '.swarm', 'work', 'feat.json'))).toBe(false);
+        expect(existsSync(join(repo, '.corpus', 'work', 'feat.json'))).toBe(false);
     });
 
-    it('a missing .swarm/config.yaml exits 2, launching nothing', () => {
+    it('a missing .corpus/config.yaml exits 2, launching nothing', () => {
         const { worktree } = buildRun({ withConfig: false });
         const { code, err } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(2);
-        expect(err).toMatch(/no \.swarm\/config\.yaml/);
+        expect(err).toMatch(/no \.corpus\/config\.yaml/);
         expect(existsSync(join(worktree, 'cwd.txt'))).toBe(false);
     });
 
-    it('an unreadable .swarm/config.yaml exits 2 cleanly, launching nothing (AC-005)', () => {
+    it('an unreadable .corpus/config.yaml exits 2 cleanly, launching nothing (AC-005)', () => {
         // config.yaml as a directory → readFileSync throws EISDIR; resolve_launch must turn it into a
         // usage error (exit 2) from within the command, not let it escape as an unhandled throw.
         buildRun({ withConfig: false });
-        mkdirSync(join(repo, '.swarm', 'config.yaml'), { recursive: true });
+        mkdirSync(join(repo, '.corpus', 'config.yaml'), { recursive: true });
         const { code, err } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(2);
-        expect(err).toMatch(/cannot read \.swarm\/config\.yaml/);
-        expect(existsSync(join(repo, '.swarm', 'work', 'feat.json'))).toBe(false);
+        expect(err).toMatch(/cannot read \.corpus\/config\.yaml/);
+        expect(existsSync(join(repo, '.corpus', 'work', 'feat.json'))).toBe(false);
     });
 
     it('a configured command that cannot be launched exits 2 (the binary does not exist)', () => {
-        buildRun({ command: '/nonexistent/swarm-agent-xyz' });
+        buildRun({ command: '/nonexistent/corpus-agent-xyz' });
         const { code, err } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(2);
         expect(err).toMatch(/could not launch agent/);
-        expect(existsSync(join(repo, '.swarm', 'work', 'feat.json'))).toBe(false); // nothing recorded on a launch failure
+        expect(existsSync(join(repo, '.corpus', 'work', 'feat.json'))).toBe(false); // nothing recorded on a launch failure
     });
 
     it('resolves the worktree by the lone-match fallback when the task names no source spec', () => {
         // No `source:` in the packet → the source-spec lookup yields nothing, so resolution falls back
-        // to the single swarm worktree whose branch tail matches the task slug.
+        // to the single corpus worktree whose branch tail matches the task slug.
         const { worktree } = buildRun({ noSource: true });
         const { code } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(0);
         expect(existsSync(join(worktree, 'cwd.txt'))).toBe(true);
-        const record = JSON.parse(readFileSync(join(repo, '.swarm', 'work', 'feat.json'), 'utf8'));
+        const record = JSON.parse(readFileSync(join(repo, '.corpus', 'work', 'feat.json'), 'utf8'));
         expect(record.source).toBeNull();
     });
 });
 
-describe('swarm run — guards (AC-006/007/008)', () => {
-    it('a task with no worktree exits 2, directing to swarm worktree create, launching nothing (AC-006)', () => {
+describe('corpus run — guards (AC-006/007/008)', () => {
+    it('a task with no worktree exits 2, directing to corpus worktree create, launching nothing (AC-006)', () => {
         buildRun({ withWorktree: false });
         const { code, err } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(2);
-        expect(err).toMatch(/no worktree for TASK-feat.*swarm worktree create/s);
-        expect(existsSync(join(repo, '.swarm', 'work', 'feat.json'))).toBe(false);
+        expect(err).toMatch(/no worktree for TASK-feat.*corpus worktree create/s);
+        expect(existsSync(join(repo, '.corpus', 'work', 'feat.json'))).toBe(false);
     });
 
     it('reports the launch verdict-free — no result/verdict/decision/pass field (AC-007)', () => {
@@ -315,7 +315,7 @@ describe('swarm run — guards (AC-006/007/008)', () => {
         // no task arg
         expect(capture(() => run([], repo)).code).toBe(2);
         // outside a git repo
-        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-norepo-')));
+        const notRepo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-norepo-')));
         try {
             expect(capture(() => run(['TASK-feat', '--agent', 'stub'], notRepo)).code).toBe(2);
         } finally {
@@ -327,9 +327,9 @@ describe('swarm run — guards (AC-006/007/008)', () => {
     });
 });
 
-describe('swarm run — the board boundary (AC-003)', () => {
+describe('corpus run — the board boundary (AC-003)', () => {
     it('leaves a pre-existing status.md (the board) byte-unchanged — reconcile-only', () => {
-        // swarm run is the launcher; prove it never touches the hand-owned board even when one is
+        // corpus run is the launcher; prove it never touches the hand-owned board even when one is
         // present (the static no-board-write scan in Core/noBoardWrite.spec covers all four layers; this
         // is the runtime backstop for `run`).
         buildRun();
@@ -340,19 +340,19 @@ describe('swarm run — the board boundary (AC-003)', () => {
 
         const { code } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
         expect(code).toBe(0);
-        // The run record landed under .swarm/work/, but the board is byte-identical AND untouched.
-        expect(existsSync(join(repo, '.swarm', 'work', 'feat.json'))).toBe(true);
+        // The run record landed under .corpus/work/, but the board is byte-identical AND untouched.
+        expect(existsSync(join(repo, '.corpus', 'work', 'feat.json'))).toBe(true);
         expect(readFileSync(boardPath, 'utf8')).toBe(board);
         expect(statSync(boardPath).mtimeMs).toBe(mtimeBefore);
     });
 });
 
-describe('swarm run — agent exit surfacing', () => {
-    it('a non-zero agent exit is recorded and surfaced as a warning (exit 1), not swarm`s own failure', () => {
+describe('corpus run — agent exit surfacing', () => {
+    it('a non-zero agent exit is recorded and surfaced as a warning (exit 1), not corpus`s own failure', () => {
         buildRun({ exit: 3 });
         const { code } = capture(() => run(['TASK-feat', '--agent', 'stub'], repo));
-        expect(code).toBe(1); // warning level, not 2 (swarm launched + recorded fine)
-        const record = JSON.parse(readFileSync(join(repo, '.swarm', 'work', 'feat.json'), 'utf8'));
+        expect(code).toBe(1); // warning level, not 2 (corpus launched + recorded fine)
+        const record = JSON.parse(readFileSync(join(repo, '.corpus', 'work', 'feat.json'), 'utf8'));
         expect(record.exit).toBe(3);
     });
 });

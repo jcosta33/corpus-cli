@@ -1,8 +1,8 @@
-// The checks contract (swarm/checks/checks.yaml + docs/reference/checks.md), implemented in code.
+// The checks contract (corpus/checks/checks.yaml + docs/reference/checks.md), implemented in code.
 // checks.yaml sanctions implementing the reference directly ("Read the rules from checks.yaml, or
 // implement the checks reference directly — they must agree over the core checks"). We pin the
 // contract version and the C-code table here; a drift-guard test asserts they match the sibling
-// swarm repo when it is present, so swarm-cli stays hermetic (no runtime dependency on swarm/) while
+// corpus repo when it is present, so corpus-cli stays hermetic (no runtime dependency on corpus/) while
 // catching divergence.
 //
 // These rule functions are PURE over a ParsedSpec record — the parser (Sol) extracts the structure;
@@ -14,7 +14,7 @@
 import type { OutcomeLevel } from '../useCases/unixOutcome.ts';
 import { strip_inline_code } from '../../../infra/markdownScan.ts';
 
-// Pinned to swarm/checks/checks.yaml `version:`; the drift-guard test fails if the sibling diverges.
+// Pinned to corpus/checks/checks.yaml `version:`; the drift-guard test fails if the sibling diverges.
 export const CONTRACT_VERSION = '0.9.0';
 
 export type CheckSeverity = 'hard-error' | 'warning';
@@ -25,8 +25,8 @@ export type CheckId =
     | 'C007' | 'C008' | 'C009' | 'C010' | 'C011' | 'C012' | 'C013' | 'C014' | 'C015'
     | 'C016' | 'C017';
 
-// Severity per check, the single source inside swarm-cli; a total Record so the lookup needs no
-// fallback. The drift guard reconciles it against swarm/checks/checks.yaml.
+// Severity per check, the single source inside corpus-cli; a total Record so the lookup needs no
+// fallback. The drift guard reconciles it against corpus/checks/checks.yaml.
 const SEVERITY_BY_ID: Record<CheckId, CheckSeverity> = {
     C001: 'hard-error',
     C002: 'hard-error',
@@ -44,8 +44,8 @@ const SEVERITY_BY_ID: Record<CheckId, CheckSeverity> = {
     C014: 'warning',
     C015: 'warning',
     // C016 pass-needs-evidence: the contract pins it hard-error (checks.yaml review_file content_rule).
-    // The GATE path (`swarm check <review>`) honors that — an empty-Evidence Pass is a structural
-    // contradiction, not a judgment call. The reconcile path (`swarm review`) still surfaces the same
+    // The GATE path (`corpus check <review>`) honors that — an empty-Evidence Pass is a structural
+    // contradiction, not a judgment call. The reconcile path (`corpus review`) still surfaces the same
     // fact advisorily (ADR-0077 D8 never blocks); see ADR-0097.
     C016: 'hard-error',
     C017: 'warning',
@@ -322,10 +322,7 @@ export function check_broken_source_link(input: CheckBrokenLinksInput): Diagnost
 // fires only when a sources.md is resolvable AND a `[[KEY]]` has no matching anchor. v0 is the
 // dangling-anchor case only; the tier checks (a MUST-level claim citing a Caveated/Rejected entry)
 // are deferred to a separate v1 decision (ADR-0087 Decision 4).
-export function check_citation_resolves(
-    spec: ParsedSpec,
-    anchor_resolves: (key: string) => boolean
-): Diagnostic[] {
+export function check_citation_resolves(spec: ParsedSpec, anchor_resolves: (key: string) => boolean): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     for (const key of spec.citations) {
         if (!anchor_resolves(key)) {
@@ -366,8 +363,8 @@ export function coverage_message(finding: CoverageFinding): string {
         : `coverage row ${finding.id} names an id absent from the source spec (orphan)`;
 }
 
-// The structured C012 facts. PURE; the draft scope guard lives here so both faces (the `swarm check`
-// Diagnostic and the `swarm review` surfaced fact) inherit it.
+// The structured C012 facts. PURE; the draft scope guard lives here so both faces (the `corpus check`
+// Diagnostic and the `corpus review` surfaced fact) inherit it.
 export function coverage_facts(input: CoverageInput): CoverageFinding[] {
     // Draft scope guard: a draft source spec's ids are not finalized claims.
     if (input.sourceSpecStatus === 'draft') {
@@ -448,7 +445,7 @@ export type VerifyBindingFinding = Readonly<{
 // Collapse whitespace, then strip a trailing note (a `(parenthetical)` OR an em/en-dash clause) and
 // surrounding backticks — the canon's own `Verify with:` format wraps the command in backticks and may
 // carry a trailing note (docs/04, the examples), while the review block records it bare; both sides MUST
-// normalize identically or a conformant block false-fires a cmd-mismatch (swarm-hq #16). The note is
+// normalize identically or a conformant block false-fires a cmd-mismatch (corpus-hq #16). The note is
 // stripped before the backticks so the documented ``cmd`` (note) / ``cmd`` — note forms reduce cleanly to
 // the bare command. The dash form keys on an EM/EN dash (—/–), never the ASCII hyphen, so a real flag
 // like `npm test -- a.spec.ts` is never truncated (R4-ISS-11).
@@ -552,9 +549,7 @@ export function verify_binding_facts(input: VerifyBindingInput): VerifyBindingFi
 }
 
 export function check_verify_binding(input: VerifyBindingInput): Diagnostic[] {
-    return verify_binding_facts(input).map((finding) =>
-        diagnostic('C013', verify_binding_message(finding), null)
-    );
+    return verify_binding_facts(input).map((finding) => diagnostic('C013', verify_binding_message(finding), null));
 }
 
 // --- C016 pass-needs-evidence (ADR-0097; the implemented pass-needs-evidence content_rule) --------
@@ -562,7 +557,7 @@ export function check_verify_binding(input: VerifyBindingInput): Diagnostic[] {
 // Pass needs pasted output, a CI link, or (for a manual Verify) a named human's recorded observation
 // — an empty cell reads Unverified, never Pass. Unlike C012/C013 (judgment-laden facts shipped at
 // warning), this is unambiguous, so the contract pins it hard-error and the GATE path blocks on it.
-// The reconcile path (`swarm review`) surfaces the SAME row ids advisorily (it never blocks, ADR-0077
+// The reconcile path (`corpus review`) surfaces the SAME row ids advisorily (it never blocks, ADR-0077
 // D8) — hence one predicate, two surfaces. PURE: the row records in, ids/diagnostics out.
 export type CoverageEvidenceRow = Readonly<{ id: string; result: string; evidence: string }>;
 

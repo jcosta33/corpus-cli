@@ -1,12 +1,12 @@
-# AGENTS.md — swarm-cli
+# AGENTS.md — corpus-cli
 
 <!-- Always-loaded bootloader (aim ~100 lines). Procedures load on demand from
      `.agents/skills/`. This is a CODE repo: the Corpus workspace governing it
-     is the sibling swarm-hq repo. -->
+     is the sibling corpus-hq repo. -->
 
 ## Corpus
 
-- Corpus workspace: `../swarm-hq` — read the task packet you are given. Specs,
+- Corpus workspace: `../corpus-hq` — read the task packet you are given. Specs,
   tasks, reviews, findings, decisions, and the board live there, not here.
 - Implement against the packet: read its linked spec first; stay inside its
   scope (if a requirement can't be met as written, stop and say why instead of
@@ -14,20 +14,20 @@
   (a claim without output counts as unverified); fill its `## Run summary`;
   re-read your own diff as a skeptic before handoff. Guide:
   `.agents/skills/implement-task/`.
-- swarm-cli is the **reconcile-only harness** (swarm ADR-0077): it prepares,
+- corpus-cli is the **reconcile-only harness** (corpus ADR-0077): it prepares,
   checks, and reconciles the Corpus loop and never runs the model loop. Surface:
   `init · update · check · worktree · status · review · new · pull · promote · run · show`
   (+ `help`) — each a direct command, most also an interactive TUI flow (`-i`;
-  `swarm` with no args opens the dashboard).
-  `swarm init` clones the swarm-starter-kit (no vendored copy lives here). The
-  checks contract this CLI implements (C001–C015) lives in the swarm repo,
+  `corpus` with no args opens the dashboard).
+  `corpus init` clones the corpus-starter-kit (no vendored copy lives here). The
+  checks contract this CLI implements (C001–C015) lives in the corpus repo,
   `checks/checks.yaml` (that file's `version:` is the contract version of record —
   don't pin a copy of it here), reimplemented in code at
   `src/modules/Core/services/checksContract.ts` and drift-guarded against it.
 
 ## Project facts
 
-- TypeScript, pnpm, vitest, eslint, dependency-cruiser; entry `bin/swarm.js` →
+- TypeScript, pnpm, vitest, eslint, dependency-cruiser; entry `bin/corpus.js` →
   `src/index.ts` (the in-process dispatcher). Modules: `Core` (the four engines and the
   `unixOutcome` contract), `Sol` (the plain-form spec parser), `Workspace` (git worktrees),
   `Terminal` (arg parsing), `Commands` (the thin wrappers), `Tui` (the interactive flows and
@@ -50,7 +50,7 @@
   `.agents/memory/glossary.md`.
 - Full conventions: `.agents/repo-conventions.md` · human coding conventions:
   `docs/07-conventions.md` · architecture: `docs/05-architecture.md` · testing:
-  `docs/06-testing.md`. (The CLI reads/writes a consumer-side `swarm.config.json`
+  `docs/06-testing.md`. (The CLI reads/writes a consumer-side `corpus.config.json`
   in the repo it operates on; this repo carries no project-config file of its own.)
 
 ## Commands

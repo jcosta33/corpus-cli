@@ -1,5 +1,5 @@
-// EmitAgents (`swarm agents emit --codex`, ADR-0098). Reads the Claude Code agent definitions in a
-// source dir (the swarm-agents `agents/*.md` form) and projects each into an OpenAI Codex
+// EmitAgents (`corpus agents emit --codex`, ADR-0098). Reads the Claude Code agent definitions in a
+// source dir (the corpus-agents `agents/*.md` form) and projects each into an OpenAI Codex
 // `.codex/agents/<name>.toml`. Reuse, not duplication: the `agents/*.md` files stay the single source;
 // this GENERATES the Codex form, so the two never drift by hand. No agent is launched, no network —
 // it reads markdown and writes TOML (the reconcile-only posture, ADR-0077, holds: it emits a
@@ -15,7 +15,7 @@ import { write_new_file } from './files.ts';
 
 export type EmitAgentsInput = Readonly<{
     // The dir holding the agent `*.md` definitions (default resolved by the command: ./.claude/agents,
-    // else ../swarm-agents/agents).
+    // else ../corpus-agents/agents).
     sourceDir: string;
     // The workspace root the `.codex/agents/` tree is written under.
     targetDir: string;
@@ -37,7 +37,7 @@ export function emit_agents(input: EmitAgentsInput): Result<EmitAgentsReport, Ap
         return err(
             createAppError(
                 'AgentsSourceMissing',
-                `no agent definitions found at ${input.sourceDir} — pass --from <dir> (e.g. ../swarm-agents/agents)`,
+                `no agent definitions found at ${input.sourceDir} — pass --from <dir> (e.g. ../corpus-agents/agents)`,
                 { source: input.sourceDir }
             )
         );
@@ -66,7 +66,9 @@ export function emit_agents(input: EmitAgentsInput): Result<EmitAgentsReport, Ap
     } catch (error) {
         /* v8 ignore next 4 -- an mkdir/write EACCES on the target; surfaced through Result rather than escaping */
         const reason = error instanceof Error ? error.message : String(error);
-        return err(createAppError('AgentsEmitFailed', `could not emit Codex agents: ${reason}`, { target: targetRoot }));
+        return err(
+            createAppError('AgentsEmitFailed', `could not emit Codex agents: ${reason}`, { target: targetRoot })
+        );
     }
 
     if (written.length === 0 && skipped.length === 0) {

@@ -27,7 +27,7 @@ Verify with: a test.
 `;
 
 beforeEach(() => {
-    ws = mkdtempSync(join(tmpdir(), 'swarm-newflow-'));
+    ws = mkdtempSync(join(tmpdir(), 'corpus-newflow-'));
     mkdirSync(join(ws, 'specs', 'x'), { recursive: true });
     writeFileSync(join(ws, 'specs', 'x', 'spec.md'), SPEC_X);
 });

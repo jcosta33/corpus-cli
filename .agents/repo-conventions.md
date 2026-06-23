@@ -1,4 +1,4 @@
-# swarm-cli repo conventions
+# corpus-cli repo conventions
 
 Project-owned rules for working in this repository (persist across Corpus kit upgrades). Load this when
 implementing or refactoring TypeScript here. These are the **de-contaminated** rules carried over from
@@ -32,7 +32,7 @@ another project; none of that applies (this repo is a TypeScript CLI, no UI, no 
 
 ## The reconcile-only boundary (ADR-0077)
 
-swarm-cli prepares, checks, and reconciles the Corpus loop — it **never runs the model/agent loop**,
+corpus-cli prepares, checks, and reconciles the Corpus loop — it **never runs the model/agent loop**,
 owns no chat UI, and issues no review verdict. The logic lives in `src/modules/Core` (the four
 engines: check, launch/worktree, reconcile/status, prepare/init+new — plus `unixOutcome`, the
 `--json`/exit-code contract). Two surfaces wrap Core: the thin direct commands (`src/modules/Commands`,

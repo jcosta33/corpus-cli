@@ -1,5 +1,5 @@
 // PrepareEngine.new — scaffold a fresh change plan (R4-ISS-06). The change plan is the riskiest core
-// artifact (migrations/rewrites/schema changes) yet was the only one with no `swarm new` generator, so a
+// artifact (migrations/rewrites/schema changes) yet was the only one with no `corpus new` generator, so a
 // new hire hand-copied templates/change-plan.md. Generates a draft conforming to the change-plan checks
 // (C010 preserves-refs-resolve, C011 waves-present): an empty `preserves:` (nothing to resolve) and a
 // default `kind: refactor` (waves not required) keep a fresh scaffold check-clean until the author fills
@@ -103,7 +103,9 @@ preserves: []
 export function scaffold_change_plan(input: ScaffoldChangePlanInput): Result<ScaffoldChangePlanReport, AppError> {
     if (!is_safe_segment(input.slug)) {
         return err(
-            usage_error(`invalid change-plan slug: "${input.slug}" — letters, digits, '.', '_', '-' only (no '/' or '..')`)
+            usage_error(
+                `invalid change-plan slug: "${input.slug}" — letters, digits, '.', '_', '-' only (no '/' or '..')`
+            )
         );
     }
     const planPath = join(input.workspaceDir, 'change-plans', `${input.slug}.md`);

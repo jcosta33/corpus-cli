@@ -1,7 +1,7 @@
-// PrepareEngine — `swarm review <task> --write` (W4b, AC-001/002/003/006). Render a DRAFT review
+// PrepareEngine — `corpus review <task> --write` (W4b, AC-001/002/003/006). Render a DRAFT review
 // packet from the kit `review.md` template, populated from the SAME read-only reconcile the M2
 // command surfaces (reconcile_review) — it adds NO new reconcile logic. Writing a draft is a
-// prepare/scaffold operation (like `swarm new`), not adjudication: the human owns every Result
+// prepare/scaffold operation (like `corpus new`), not adjudication: the human owns every Result
 // (ADR-0077 Decision 8). Pure: source records in, the rendered markdown out — the caller (the
 // command / the Workspace write helper) owns the single no-clobber file write (AC-004).
 //
@@ -38,7 +38,6 @@ export type DraftReviewPacket = Readonly<{
     slug: string;
     markdown: string;
 }>;
-
 
 // One Evidence cell per in-scope id, lifted from what the reconcile read — never invented (the
 // no-fabrication non-goal). The only evidence a draft pre-fills is a CONSISTENT C013 verify block
@@ -138,7 +137,9 @@ function human_attention(report: ReviewReport): string[] {
         lines.push(`bad-result: coverage row ${id} has a Result outside {Pass, Fail, Unverified, Blocked}.`);
     }
     if (report.packetStructural.badStatus !== null) {
-        lines.push(`bad-status: frontmatter status "${report.packetStructural.badStatus}" is not a recognized review status.`);
+        lines.push(
+            `bad-status: frontmatter status "${report.packetStructural.badStatus}" is not a recognized review status.`
+        );
     }
     if (report.packetStructural.statusPassContradicted) {
         lines.push('status-contradicted: status: pass but a coverage row is not Pass.');

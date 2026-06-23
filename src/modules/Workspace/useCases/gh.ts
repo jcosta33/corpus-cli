@@ -1,4 +1,4 @@
-// The `gh` CLI fetch the intake prepare verb (`swarm pull`) wraps — the single impure edge for
+// The `gh` CLI fetch the intake prepare verb (`corpus pull`) wraps — the single impure edge for
 // pulling a ticket body, kept in the Workspace leaf alongside the git ops (never inlined into an
 // engine). `gh` is the GitHub CLI on PATH; this is a read-only `gh issue view`, never a write.
 // Returns a Result so a missing `gh` / a failed fetch surfaces as a clean error (the caller falls
@@ -32,7 +32,8 @@ export function fetch_gh_issue(ref: string, opts: { cwd?: string } = {}): Result
         );
     }
     if (result.status !== 0) {
-        const stderr = (result.stderr || '').trim() || `gh issue view ${ref} exited with status ${String(result.status)}`;
+        const stderr =
+            (result.stderr || '').trim() || `gh issue view ${ref} exited with status ${String(result.status)}`;
         return err(createAppError('GhFetchFailed', `could not fetch ${ref}: ${stderr}`, { ref, stderr }));
     }
     let parsed: unknown;

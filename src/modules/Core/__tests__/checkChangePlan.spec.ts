@@ -51,7 +51,9 @@ const checkoutResolver = (specId: string, acId: string) =>
 
 describe('check_change_plan — C010/C011 (AC-001/002/003)', () => {
     it('a valid plan (refs resolve, PG-001 plan-local, waves named) is clean', () => {
-        const report = assertOk(check_change_plan({ source: plan(), path: 'p.md', spec_ref_resolves: checkoutResolver }));
+        const report = assertOk(
+            check_change_plan({ source: plan(), path: 'p.md', spec_ref_resolves: checkoutResolver })
+        );
         expect(report.diagnostics).toEqual([]);
         expect(report.level).toBe('clean');
     });
@@ -115,24 +117,24 @@ describe('check_change_plan — C010/C011 (AC-001/002/003)', () => {
 });
 
 // AC-004: the frozen transformation fixture is the oracle — C010 pass, C011 pass (EXPECTED.md).
-// Reached the same way the contract drift-guard reaches the sibling swarm repo (../swarm from cwd).
-// CONDITIONAL on the sibling `../swarm` checkout: in a hermetic swarm-cli-only checkout the fixture
+// Reached the same way the contract drift-guard reaches the sibling corpus repo (../corpus from cwd).
+// CONDITIONAL on the sibling `../corpus` checkout: in a hermetic corpus-cli-only checkout the fixture
 // isn't on disk, so this oracle CANNOT run and no-ops (SKIPPED below, never silently green). CI MUST
-// check out the sibling `../swarm` for it to bite — we deliberately do NOT vendor a fixture copy here
+// check out the sibling `../corpus` for it to bite — we deliberately do NOT vendor a fixture copy here
 // (it would become a second source of truth that could drift from the canon it pins). The skip is
 // named + warned so an absent sibling is a visible signal in the run, not a silent pass.
 describe('check_change_plan reproduces the transformation fixture (AC-004)', () => {
-    const fixtureDir = resolve(process.cwd(), '../swarm/checks/fixtures/transformation');
+    const fixtureDir = resolve(process.cwd(), '../corpus/checks/fixtures/transformation');
     const planPath = resolve(fixtureDir, 'change-plan.md');
     const present = existsSync(planPath);
     if (!present) {
         console.warn(
-            `[no-op] transformation-fixture oracle SKIPPED: sibling fixture ${planPath} absent — CI must check out ../swarm for AC-004 to bite`
+            `[no-op] transformation-fixture oracle SKIPPED: sibling fixture ${planPath} absent — CI must check out ../corpus for AC-004 to bite`
         );
     }
     const fixtureName = present
         ? 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md)'
-        : 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md) (SKIPPED: sibling ../swarm absent)';
+        : 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md) (SKIPPED: sibling ../corpus absent)';
 
     (present ? it : it.skip)(fixtureName, () => {
         const resolver = build_spec_ref_resolver(find_sibling_spec_files(planPath));
@@ -148,15 +150,29 @@ describe('check_change_plan reproduces the transformation fixture (AC-004)', () 
 describe('check_change_plan — wave continuation (#23 A4)', () => {
     it('A4: a closing paragraph after the wave list does not mask a check-less wave from C011', () => {
         const source = [
-            '---', 'type: change-plan', 'id: CHANGE-a4', 'title: A4', 'status: draft',
-            'kind: migration', 'owner: Jane', 'sources: [SPEC-x]', 'preserves: [PG-001]',
-            'created: 2026-06-19', '---', '',
-            '## Behavioral preservation guarantees', '',
-            '| ID | Behavior | Verify with |', '|---|---|---|',
-            '| PG-001 | x stays | `npm test` |', '',
-            '## Transformation waves', '',
+            '---',
+            'type: change-plan',
+            'id: CHANGE-a4',
+            'title: A4',
+            'status: draft',
+            'kind: migration',
+            'owner: Jane',
+            'sources: [SPEC-x]',
+            'preserves: [PG-001]',
+            'created: 2026-06-19',
+            '---',
+            '',
+            '## Behavioral preservation guarantees',
+            '',
+            '| ID | Behavior | Verify with |',
+            '|---|---|---|',
+            '| PG-001 | x stays | `npm test` |',
+            '',
+            '## Transformation waves',
+            '',
             '1. Move the callsites, run `npm test`',
-            '2. Delete the old API A shim', '',
+            '2. Delete the old API A shim',
+            '',
             'Throughout, the suite `npm test` stays green.',
         ].join('\n');
         const report = assertOk(

@@ -135,12 +135,12 @@ describe('format_board', () => {
 
 describe('format_worktrees', () => {
     it('renders entries and an empty placeholder', () => {
-        expect(format_worktrees([])).toContain('no swarm worktrees');
+        expect(format_worktrees([])).toContain('no corpus worktrees');
         const out = format_worktrees([
-            { branch: 'swarm/x', path: '/wt/x', dirty: false },
-            { branch: 'swarm/y', path: '/wt/y', dirty: true },
+            { branch: 'corpus/x', path: '/wt/x', dirty: false },
+            { branch: 'corpus/y', path: '/wt/y', dirty: true },
         ]);
-        expect(out).toContain('swarm/x');
+        expect(out).toContain('corpus/x');
         expect(out).toContain('clean');
         expect(out).toContain('dirty');
     });

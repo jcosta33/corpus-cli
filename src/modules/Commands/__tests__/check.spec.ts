@@ -30,7 +30,7 @@ Verify with: a test.
 
 let dir: string;
 beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'swarm-check-cmd-'));
+    dir = mkdtempSync(join(tmpdir(), 'corpus-check-cmd-'));
 });
 afterEach(() => {
     rmSync(dir, { recursive: true, force: true });

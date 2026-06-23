@@ -1,12 +1,12 @@
-# swarm-cli
+# corpus-cli
 
-The reference CLI for the [Corpus framework](https://github.com/jcosta33/swarm) — a **reconcile-only
+The reference CLI for the [Corpus framework](https://github.com/jcosta33/corpus) — a **reconcile-only
 harness** for spec-driven agent work. It implements the checks contract in
-[`swarm/checks/checks.yaml`](https://github.com/jcosta33/swarm/blob/main/checks/checks.yaml); its own
-specs and reviews live in the family workspace, [swarm-hq](https://github.com/jcosta33/swarm-hq)
-(the design of record is `swarm/docs/adrs/0077`).
+[`corpus/checks/checks.yaml`](https://github.com/jcosta33/corpus/blob/main/checks/checks.yaml); its own
+specs and reviews live in the family workspace, [corpus-hq](https://github.com/jcosta33/corpus-hq)
+(the design of record is `corpus/docs/adrs/0077`).
 
-swarm-cli **prepares, checks, and reconciles** the work around the Corpus loop — it never runs the
+corpus-cli **prepares, checks, and reconciles** the work around the Corpus loop — it never runs the
 model loop itself. Every flow is available two ways: a **direct, scriptable command** and a
 **beautiful interactive TUI**.
 
@@ -19,32 +19,32 @@ model loop itself. Every flow is available two ways: a **direct, scriptable comm
 
 ## Install
 
-swarm-cli is **not yet published to npm** — the bare name `swarm-cli` on npm is an unrelated project,
-so `npm install -g swarm-cli` installs the wrong tool. Install from source instead:
+corpus-cli is **not yet published to npm** — the bare name `corpus-cli` on npm is an unrelated project,
+so `npm install -g corpus-cli` installs the wrong tool. Install from source instead:
 
 ```bash
-git clone https://github.com/jcosta33/swarm-cli
-cd swarm-cli && pnpm install && pnpm build   # or: npm install && npm run build
-npm link                                     # puts `swarm` on your PATH
+git clone https://github.com/jcosta33/corpus-cli
+cd corpus-cli && pnpm install && pnpm build   # or: npm install && npm run build
+npm link                                     # puts `corpus` on your PATH
 ```
 
-`bin/swarm.js` runs the bundled JavaScript (`dist/`, built on `prepack`), so an installed CLI needs
+`bin/corpus.js` runs the bundled JavaScript (`dist/`, built on `prepack`), so an installed CLI needs
 no transpiler. From a checkout it runs the `src/` TypeScript directly via Node's native type
-stripping (Node ≥ 22.6) — `node bin/swarm.js <command>` works without a build step; `pnpm build`
+stripping (Node ≥ 22.6) — `node bin/corpus.js <command>` works without a build step; `pnpm build`
 produces the `dist/` bundle. (A published package under a non-colliding name will replace this.)
 
 ## Quick start
 
 ```bash
-swarm                       # open the interactive dashboard
-swarm init                  # scaffold a Corpus workspace from the starter kit
-swarm check                 # lint every spec in the workspace
-swarm status                # the workspace board — specs, tasks, reviews, gaps
-swarm new task --from SPEC-checkout --scope AC-001,AC-002
-swarm worktree create checkout
+corpus                       # open the interactive dashboard
+corpus init                  # scaffold a Corpus workspace from the starter kit
+corpus check                 # lint every spec in the workspace
+corpus status                # the workspace board — specs, tasks, reviews, gaps
+corpus new task --from SPEC-checkout --scope AC-001,AC-002
+corpus worktree create checkout
 ```
 
-Run any command with `-i` for its interactive form (`swarm check -i`). The interactive surface
+Run any command with `-i` for its interactive form (`corpus check -i`). The interactive surface
 **never engages** when output is piped or `--json` is set, so scripts and CI stay non-interactive.
 
 ## The two surfaces
@@ -53,30 +53,30 @@ Each command is both a Unix part and an interactive flow:
 
 - **Direct** — `--json` machine output, exit codes (`0` clean · `1` warnings · `2` error),
   stdout-for-data / stderr-for-messages, `--no-workspace` degradation. Compose it in scripts and CI.
-- **Interactive** — `swarm` with no command opens a dashboard that reaches every flow; any command
+- **Interactive** — `corpus` with no command opens a dashboard that reaches every flow; any command
   takes `-i`. Prompts, live progress, and coloured, per-finding feedback.
 
 ## Commands
 
-| Command                                        | What it does                                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------------ |
-| `swarm init [dir]`                             | Scaffold a workspace from the swarm-starter-kit, conflict-safe           |
-| `swarm update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely |
-| `swarm check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg)      |
-| `swarm worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `swarm/<spec-slug>` branches           |
-| `swarm status`                                 | A read-only derived board over specs ← tasks ← reviews                   |
-| `swarm review <task>`                          | Reconcile a finished run — diff vs self-report vs spec; the human owns the verdict |
-| `swarm new <task\|spec>`                       | Cut a task packet from a spec (scope never invented), or scaffold a spec |
-| `swarm pull <ref>`                             | Snapshot a ticket into `intake/` — verbatim, never a spec or the board   |
-| `swarm promote <task>`                         | Scaffold a candidate finding from a finished task (no learning asserted) |
-| `swarm run <task> --agent <name>`              | Launch a prepared task on an external agent in its worktree; records the launch (no verdict) |
-| `swarm show <task\|spec\|review\|checks>`      | Project a parsed artifact as JSON — read-only                           |
-| `swarm agents emit --codex`                    | Generate Codex `.codex/agents/*.toml` from the swarm-agents definitions (prose discipline only) |
-| `swarm help`                                   | This reference                                                           |
+| Command                                         | What it does                                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `corpus init [dir]`                             | Scaffold a workspace from the corpus-starter-kit, conflict-safe                                  |
+| `corpus update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely      |
+| `corpus check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg)                              |
+| `corpus worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `corpus/<spec-slug>` branches                                  |
+| `corpus status`                                 | A read-only derived board over specs ← tasks ← reviews                                           |
+| `corpus review <task>`                          | Reconcile a finished run — diff vs self-report vs spec; the human owns the verdict               |
+| `corpus new <task\|spec>`                       | Cut a task packet from a spec (scope never invented), or scaffold a spec                         |
+| `corpus pull <ref>`                             | Snapshot a ticket into `intake/` — verbatim, never a spec or the board                           |
+| `corpus promote <task>`                         | Scaffold a candidate finding from a finished task (no learning asserted)                         |
+| `corpus run <task> --agent <name>`              | Launch a prepared task on an external agent in its worktree; records the launch (no verdict)     |
+| `corpus show <task\|spec\|review\|checks>`      | Project a parsed artifact as JSON — read-only                                                    |
+| `corpus agents emit --codex`                    | Generate Codex `.codex/agents/*.toml` from the corpus-agents definitions (prose discipline only) |
+| `corpus help`                                   | This reference                                                                                   |
 
-### `swarm init`
+### `corpus init`
 
-Clones the [swarm-starter-kit](https://github.com/jcosta33/swarm-starter-kit) and copies it into the
+Clones the [corpus-starter-kit](https://github.com/jcosta33/corpus-starter-kit) and copies it into the
 target — **never overwriting your content by default**. An existing file is _skipped_ (kept), unless
 you pass `--force` or `--on-conflict overwrite|backup`. `.gitignore` and `AGENTS.md` _merge_ a Corpus
 block rather than skip. An empty directory gets the full workspace; an existing code repo gets the
@@ -85,41 +85,41 @@ kit source. Re-running is conflict-safe: unchanged kit files are no-ops (a clean
 file you have since edited is kept — reported as _skipped_ with a non-zero exit, so you can see what
 diverged.
 
-### `swarm update`
+### `corpus update`
 
-`--check` (the default) reads the workspace's `.agents/.swarm-version` pin (stamped by `swarm init`)
+`--check` (the default) reads the workspace's `.agents/.corpus-version` pin (stamped by `corpus init`)
 and compares it to the latest kit's `VERSION`, resolved through the same source as `init` (the
-swarm-starter-kit by default, or `--from <path|url>`). Reports whether you're behind and prints the
+corpus-starter-kit by default, or `--from <path|url>`). Reports whether you're behind and prints the
 kit's `CHANGELOG` (what you'd gain) — exit `0` up to date, `1` behind, `2` error; **writes nothing**.
 
 `--write` (alias `--apply`) lands the newer kit content via the conflict-safe copy engine, **scoped to
 the kit-owned guidance** (`templates/`, `.agents/skills/`, `advanced/`, `hooks/`) — never the
 adopter's specs, board, decisions, or `AGENTS.md`. A customized kit file is handled by
-`--on-conflict backup` (default; the user's copy → `*.swarm-bak`, the kit's lands), `overwrite`, or
+`--on-conflict backup` (default; the user's copy → `*.corpus-bak`, the kit's lands), `overwrite`, or
 `skip`; the pin re-stamps on a full apply (a `skip` leaves it behind so a later `--check` still flags
-drift). It is **not** a 3-way line-merge ([ADR-0091](https://github.com/jcosta33/swarm/blob/main/docs/adrs/0091-swarm-update-check.md)).
-The network lives here, never in the hermetic `swarm check`.
+drift). It is **not** a 3-way line-merge ([ADR-0091](https://github.com/jcosta33/corpus/blob/main/docs/adrs/0091-corpus-update-check.md)).
+The network lives here, never in the hermetic `corpus check`.
 
-### `swarm check`
+### `corpus check`
 
-Runs the core checks of the contract (C001–C017) over the plain two-tier spec form. `swarm check
-<file>` lints one spec; bare `swarm check` aggregates every `specs/*/spec.md` into one
+Runs the core checks of the contract (C001–C017) over the plain two-tier spec form. `corpus check
+<file>` lints one spec; bare `corpus check` aggregates every `specs/*/spec.md` into one
 `clean`/`blocking` verdict (the CI merge gate) and flags workspace-validity issues (a leftover
 `{{placeholder}}`, a missing `templates/`). `--json` emits the diagnostics; no file is written.
 
-### `swarm worktree`
+### `corpus worktree`
 
-`create <slug>` makes an isolated worktree on `swarm/<spec-slug>` off the base branch (idempotent);
-`list` shows the swarm worktrees; `remove <slug> [--force]` tears one down; `prune` clears stale
+`create <slug>` makes an isolated worktree on `corpus/<spec-slug>` off the base branch (idempotent);
+`list` shows the corpus worktrees; `remove <slug> [--force]` tears one down; `prune` clears stale
 entries. Works in any git repo — no Corpus workspace required.
 
-### `swarm status`
+### `corpus status`
 
 Reads the workspace artifacts and prints a derived board: each spec's tasks, the tasks awaiting a
 review packet, and the needs-human list. Read-only — it writes nothing (the committed `status.md`
 stays hand-edited).
 
-### `swarm new`
+### `corpus new`
 
 `new task --from <SPEC-id> [--scope AC-001,AC-002]` cuts a task packet whose Scope is copied from the
 named requirement ids — a scope id that isn't a requirement of the spec is rejected, and an empty
@@ -127,7 +127,7 @@ scope stays empty (never invented). `new spec <slug>` scaffolds a fresh draft sp
 
 ## The boundary
 
-swarm-cli is **reconcile-only**. It never runs a model/agent, owns no chat UI, and never issues a
+corpus-cli is **reconcile-only**. It never runs a model/agent, owns no chat UI, and never issues a
 review verdict — it prepares inputs, checks artifacts, and reconciles state. Running an agent and
 deciding Pass/Fail are the human's (and a later milestone's) job.
 
@@ -135,4 +135,4 @@ deciding Pass/Fail are the human's (and a later milestone's) job.
 
 - [`AGENTS.md`](./AGENTS.md) — the bootloader for agents working on this repo
 - [`.agents/repo-conventions.md`](./.agents/repo-conventions.md) — the module architecture + soundness rules
-- The Corpus framework: [swarm](https://github.com/jcosta33/swarm) · the kit: [swarm-starter-kit](https://github.com/jcosta33/swarm-starter-kit) · the workspace: [swarm-hq](https://github.com/jcosta33/swarm-hq)
+- The Corpus framework: [corpus](https://github.com/jcosta33/corpus) · the kit: [corpus-starter-kit](https://github.com/jcosta33/corpus-starter-kit) · the workspace: [corpus-hq](https://github.com/jcosta33/corpus-hq)

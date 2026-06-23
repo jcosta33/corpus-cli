@@ -235,7 +235,7 @@ describe('C012 coverage (ADR-0079)', () => {
     });
 });
 
-describe('normalize_cmd (ADR-0083 / swarm-hq #16)', () => {
+describe('normalize_cmd (ADR-0083 / corpus-hq #16)', () => {
     const bare = 'npm test -- auth-refresh.spec.ts';
     it('reduces the canon Verify-with forms (backtick-wrapped, trailing note, extra whitespace) to the same bare command', () => {
         expect(normalize_cmd(`\`${bare}\``)).toBe(bare);
@@ -290,7 +290,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (swarm-hq #16)', () => {
+    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (corpus-hq #16)', () => {
         expect(
             verify_binding_facts(
                 base({
@@ -303,7 +303,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (swarm-hq #16)', () => {
+    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (corpus-hq #16)', () => {
         expect(
             verify_binding_facts(
                 base({
@@ -509,7 +509,7 @@ describe('C011 waves-present (change-plan, AC-003)', () => {
 describe('is_workspace_ref', () => {
     it('treats paths and doc-like files as workspace refs', () => {
         expect(is_workspace_ref('specs/x/spec.md')).toBe(true);
-        expect(is_workspace_ref('../swarm/checks/checks.yaml')).toBe(true);
+        expect(is_workspace_ref('../corpus/checks/checks.yaml')).toBe(true);
         expect(is_workspace_ref('file.md')).toBe(true);
         expect(is_workspace_ref('config.json')).toBe(true);
     });
@@ -701,23 +701,23 @@ describe('run_spec_checks + verdict_for', () => {
     });
 });
 
-describe('drift guard against the sibling swarm/checks/checks.yaml', () => {
-    // PG-005's drift-guard teeth are conditional on the sibling `../swarm` checkout being present: in a
-    // hermetic swarm-cli-only checkout the contract source isn't on disk, so the guard CANNOT run and
-    // no-ops (SKIPPED below, never silently green). CI MUST check out the sibling `../swarm` for the
+describe('drift guard against the sibling corpus/checks/checks.yaml', () => {
+    // PG-005's drift-guard teeth are conditional on the sibling `../corpus` checkout being present: in a
+    // hermetic corpus-cli-only checkout the contract source isn't on disk, so the guard CANNOT run and
+    // no-ops (SKIPPED below, never silently green). CI MUST check out the sibling `../corpus` for the
     // guard to bite — we deliberately do NOT vendor a checks.yaml copy here (a second source of truth
     // would itself drift from the canon it is meant to pin). The skip is named + warned so an absent
     // sibling is a visible signal in the run, not a silent pass.
-    const contractPath = resolve(process.cwd(), '../swarm/checks/checks.yaml');
+    const contractPath = resolve(process.cwd(), '../corpus/checks/checks.yaml');
     const present = existsSync(contractPath);
     if (!present) {
         console.warn(
-            `[no-op] drift guard SKIPPED: sibling contract ${contractPath} absent — CI must check out ../swarm for PG-005 to bite`
+            `[no-op] drift guard SKIPPED: sibling contract ${contractPath} absent — CI must check out ../corpus for PG-005 to bite`
         );
     }
     const guardName = present
         ? 'pins the same version and core-check table'
-        : 'pins the same version and core-check table (SKIPPED: sibling ../swarm absent)';
+        : 'pins the same version and core-check table (SKIPPED: sibling ../corpus absent)';
 
     (present ? it : it.skip)(guardName, () => {
         const text = readFileSync(contractPath, 'utf8');

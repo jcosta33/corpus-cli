@@ -15,10 +15,10 @@ function agentDef(name: string, tools: string): string {
 }
 
 beforeEach(() => {
-    src = mkdtempSync(join(tmpdir(), 'swarm-agents-src-'));
-    target = mkdtempSync(join(tmpdir(), 'swarm-agents-tgt-'));
-    writeFileSync(join(src, 'swarm-reviewer.md'), agentDef('swarm-reviewer', 'Read, Grep, Glob, Bash'));
-    writeFileSync(join(src, 'swarm-explorer.md'), agentDef('swarm-explorer', 'Read, Grep, Glob'));
+    src = mkdtempSync(join(tmpdir(), 'corpus-agents-src-'));
+    target = mkdtempSync(join(tmpdir(), 'corpus-agents-tgt-'));
+    writeFileSync(join(src, 'corpus-reviewer.md'), agentDef('corpus-reviewer', 'Read, Grep, Glob, Bash'));
+    writeFileSync(join(src, 'corpus-explorer.md'), agentDef('corpus-explorer', 'Read, Grep, Glob'));
     writeFileSync(join(src, 'README.md'), '# the catalog readme — NOT an agent def\n'); // must be ignored
     writeFileSync(join(src, 'notes.md'), '# a stray doc with no frontmatter\n'); // not a def → skipped
 });
@@ -27,14 +27,14 @@ afterEach(() => {
     rmSync(target, { recursive: true, force: true });
 });
 
-describe('emit_agents (swarm agents emit --codex, ADR-0098)', () => {
+describe('emit_agents (corpus agents emit --codex, ADR-0098)', () => {
     it('emits one .codex/agents/<name>.toml per agent def, ignoring README + non-defs', () => {
         const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
-        expect(report.written.sort()).toEqual(['swarm-explorer.toml', 'swarm-reviewer.toml']);
+        expect(report.written.sort()).toEqual(['corpus-explorer.toml', 'corpus-reviewer.toml']);
         expect(report.level).toBe('clean');
-        const toml = readFileSync(join(target, '.codex', 'agents', 'swarm-reviewer.toml'), 'utf8');
+        const toml = readFileSync(join(target, '.codex', 'agents', 'corpus-reviewer.toml'), 'utf8');
         expect(toml).toContain('developer_instructions = """');
-        expect(toml).toContain('Body of swarm-reviewer.');
+        expect(toml).toContain('Body of corpus-reviewer.');
         expect(toml).toContain('Read, Grep, Glob, Bash'); // tools named in the honesty header
         // README.md / notes.md produced no .toml
         expect(existsSync(join(target, '.codex', 'agents', 'README.toml'))).toBe(false);
@@ -43,15 +43,15 @@ describe('emit_agents (swarm agents emit --codex, ADR-0098)', () => {
     it('no-clobber by default: an existing .toml is skipped (warning); --force overwrites', () => {
         assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
         // tamper with one, re-emit without force → it is kept (skipped), level warning
-        const reviewerPath = join(target, '.codex', 'agents', 'swarm-reviewer.toml');
+        const reviewerPath = join(target, '.codex', 'agents', 'corpus-reviewer.toml');
         writeFileSync(reviewerPath, 'HAND EDIT\n');
         const second = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
-        expect(second.skipped).toContain('swarm-reviewer.toml');
+        expect(second.skipped).toContain('corpus-reviewer.toml');
         expect(second.level).toBe('warning');
         expect(readFileSync(reviewerPath, 'utf8')).toBe('HAND EDIT\n'); // untouched
         // --force regenerates over the hand edit
         const third = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: true }));
-        expect(third.written).toContain('swarm-reviewer.toml');
+        expect(third.written).toContain('corpus-reviewer.toml');
         expect(readFileSync(reviewerPath, 'utf8')).toContain('developer_instructions'); // regenerated
     });
 
@@ -60,7 +60,7 @@ describe('emit_agents (swarm agents emit --codex, ADR-0098)', () => {
     });
 
     it('a source dir with no agent defs → Err (nothing to emit)', () => {
-        const empty = mkdtempSync(join(tmpdir(), 'swarm-agents-empty-'));
+        const empty = mkdtempSync(join(tmpdir(), 'corpus-agents-empty-'));
         writeFileSync(join(empty, 'README.md'), '# only a readme\n');
         try {
             assertErr(emit_agents({ sourceDir: empty, targetDir: target, overwrite: false }));

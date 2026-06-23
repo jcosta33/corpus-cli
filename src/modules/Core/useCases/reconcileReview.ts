@@ -1,4 +1,4 @@
-// ReconcileEngine — `swarm review` (M2, AC-018/019/020/021/023). The read-only diff-touching half of
+// ReconcileEngine — `corpus review` (M2, AC-018/019/020/021/023). The read-only diff-touching half of
 // the reconcile engine: given a finished run's resolved inputs (the task packet, the source spec, the
 // review packet if one exists, and the worktree's net change against its base), it mechanically
 // reconciles WHAT WAS CLAIMED vs WHAT CHANGED vs WHAT THE SPEC REQUIRED, and returns the facts a human
@@ -178,8 +178,7 @@ export function reconcile_review(input: ReconcileReviewInput): Result<ReviewRepo
     // reconciles task-packet intent against the diff, independent of the spec's draft status.
     const doNotChangeTouched = do_not_change_touched(input.diffChangedFiles, packet.doNotChange);
 
-    const packetStructural =
-        reviewPacket !== null ? packet_structural_facts(reviewPacket) : EMPTY_PACKET_FACTS;
+    const packetStructural = reviewPacket !== null ? packet_structural_facts(reviewPacket) : EMPTY_PACKET_FACTS;
     const emptyEvidencePassRows = reviewPacket !== null ? empty_evidence_pass_rows(reviewPacket.coverageRows) : [];
 
     // C018 oversized-packet (ADR-0094/0097): the size nudge off the committed diff stats. Computed only

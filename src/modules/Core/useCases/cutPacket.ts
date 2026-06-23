@@ -19,7 +19,7 @@ export type CutPacketInput = Readonly<{
     scope: readonly string[];
     taskId?: string;
     // Overwrite an existing packet (R5-I08) — a common case is re-cutting with `--scope` after a first
-    // `swarm new task` (no scope) wrote an unbounded stub that no-clobber then refused to replace.
+    // `corpus new task` (no scope) wrote an unbounded stub that no-clobber then refused to replace.
     force?: boolean;
 }>;
 
@@ -153,9 +153,13 @@ export function cut_packet(input: CutPacketInput): Result<CutPacketReport, AppEr
     const taskPath = join(input.workspaceDir, 'tasks', `${taskId}.md`);
     if (existsSync(taskPath) && input.force !== true) {
         return err(
-            createAppError('TaskExists', `a task packet already exists: tasks/${taskId}.md (re-cut with --force to replace it)`, {
-                taskId,
-            })
+            createAppError(
+                'TaskExists',
+                `a task packet already exists: tasks/${taskId}.md (re-cut with --force to replace it)`,
+                {
+                    taskId,
+                }
+            )
         );
     }
 

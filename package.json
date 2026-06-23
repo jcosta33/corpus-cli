@@ -1,28 +1,28 @@
 {
-    "name": "swarm-cli",
+    "name": "corpus-cli",
     "version": "1.0.0",
     "description": "The reference CLI for the Corpus framework — a reconcile-only harness for spec-driven agent work.",
     "keywords": [
-        "swarm",
+        "corpus",
         "spec-driven",
         "agents",
         "cli",
         "reconcile",
         "worktree"
     ],
-    "homepage": "https://github.com/jcosta33/swarm-cli#readme",
+    "homepage": "https://github.com/jcosta33/corpus-cli#readme",
     "bugs": {
-        "url": "https://github.com/jcosta33/swarm-cli/issues"
+        "url": "https://github.com/jcosta33/corpus-cli/issues"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/jcosta33/swarm-cli.git"
+        "url": "git+https://github.com/jcosta33/corpus-cli.git"
     },
     "license": "MIT",
     "author": "José Costa",
     "type": "module",
     "bin": {
-        "swarm": "./bin/swarm.js"
+        "corpus": "./bin/corpus.js"
     },
     "files": [
         "bin",

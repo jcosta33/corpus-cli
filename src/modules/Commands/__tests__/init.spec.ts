@@ -9,9 +9,9 @@ let kit: string;
 let target: string;
 
 beforeAll(() => {
-    kit = mkdtempSync(join(tmpdir(), 'swarm-initkit-'));
+    kit = mkdtempSync(join(tmpdir(), 'corpus-initkit-'));
     writeFileSync(join(kit, 'AGENTS.md'), 'KIT WORKSPACE AGENTS\n');
-    writeFileSync(join(kit, '.gitignore.additions'), 'node_modules/\n.swarm-cache/');
+    writeFileSync(join(kit, '.gitignore.additions'), 'node_modules/\n.corpus-cache/');
     writeFileSync(join(kit, 'status.md'), '# Board\n');
     writeFileSync(join(kit, 'README.md'), 'KIT README\n');
     mkdirSync(join(kit, 'specs', 'demo'), { recursive: true });
@@ -23,7 +23,7 @@ afterAll(() => {
     rmSync(kit, { recursive: true, force: true });
 });
 beforeEach(() => {
-    target = mkdtempSync(join(tmpdir(), 'swarm-inittarget-'));
+    target = mkdtempSync(join(tmpdir(), 'corpus-inittarget-'));
 });
 afterEach(() => {
     rmSync(target, { recursive: true, force: true });
@@ -61,7 +61,7 @@ describe('init command (direct surface, AC-012/016, D-003)', () => {
         const second = await capture(() => run(['--from', kit, '--json'], target));
         expect(JSON.parse(second.out)).toMatchObject({ mode: 'workspace' });
         // a workspace AGENTS.md stays the plain kit copy — no footprint pointer block merged in
-        expect(readFileSync(join(target, 'AGENTS.md'), 'utf8')).not.toContain('swarm:start');
+        expect(readFileSync(join(target, 'AGENTS.md'), 'utf8')).not.toContain('corpus:start');
     });
 
     it('a non-empty repo → footprint mode: merges .gitignore + AGENTS pointer, no tree dump', async () => {
@@ -70,7 +70,7 @@ describe('init command (direct surface, AC-012/016, D-003)', () => {
         expect(code).toBe(0);
         expect(existsSync(join(target, 'status.md'))).toBe(false);
         expect(existsSync(join(target, 'specs'))).toBe(false);
-        expect(readFileSync(join(target, 'AGENTS.md'), 'utf8')).toContain('swarm-starter-kit');
+        expect(readFileSync(join(target, 'AGENTS.md'), 'utf8')).toContain('corpus-starter-kit');
     });
 
     it('--workspace into a repo with a conflict → skips it (warning, exit 1)', async () => {
@@ -84,7 +84,7 @@ describe('init command (direct surface, AC-012/016, D-003)', () => {
         writeFileSync(join(target, 'README.md'), 'USER README\n');
         const { code } = await capture(() => run(['--from', kit, '--workspace', '--on-conflict', 'backup'], target));
         expect(code).toBe(0);
-        expect(readFileSync(join(target, 'README.md.swarm-bak'), 'utf8')).toBe('USER README\n');
+        expect(readFileSync(join(target, 'README.md.corpus-bak'), 'utf8')).toBe('USER README\n');
         expect(readFileSync(join(target, 'README.md'), 'utf8')).toBe('KIT README\n');
     });
 

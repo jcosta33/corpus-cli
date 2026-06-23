@@ -10,7 +10,7 @@ import { scaffold_finding } from '../useCases/scaffoldFinding.ts';
 let ws: string;
 
 beforeEach(() => {
-    ws = mkdtempSync(join(tmpdir(), 'swarm-promote-'));
+    ws = mkdtempSync(join(tmpdir(), 'corpus-promote-'));
 });
 afterEach(() => {
     rmSync(ws, { recursive: true, force: true });

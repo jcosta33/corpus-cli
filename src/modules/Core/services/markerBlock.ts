@@ -1,7 +1,7 @@
-// Merge a Swarm-managed block into a user file without disturbing the user's other content
+// Merge a Corpus-managed block into a user file without disturbing the user's other content
 // (AC-016). The block is delimited by start/end markers: if the file already has that block it is
 // replaced in place (so re-running init is idempotent); otherwise it is appended. Used for
-// .gitignore (the kit's required ignores) and AGENTS.md (the Swarm pointer) — the two files init
+// .gitignore (the kit's required ignores) and AGENTS.md (the Corpus pointer) — the two files init
 // merges instead of skipping.
 
 export type MergeMarkerBlockInput = Readonly<{

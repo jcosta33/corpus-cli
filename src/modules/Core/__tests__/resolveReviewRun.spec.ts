@@ -78,13 +78,13 @@ function scaffold(opts: { task?: string; withSpec?: boolean; withWorktree?: bool
     if (opts.withWorktree !== false) {
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
         const wt = join(repo, '.worktrees', 'feat-feat');
-        git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base]);
+        git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base]);
         writeFileSync(join(wt, 'changed.ts'), 'x');
     }
 }
 
 beforeEach(() => {
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-resolve-')));
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-resolve-')));
 });
 afterEach(() => {
     rmSync(repo, { recursive: true, force: true });
@@ -162,22 +162,22 @@ describe('resolve_review_run (AC-017)', () => {
     });
 
     it('falls back to the lone worktree whose branch tail matches the task slug', () => {
-        scaffold({ withWorktree: false }); // no direct swarm/feat/feat worktree
+        scaffold({ withWorktree: false }); // no direct corpus/feat/feat worktree
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
         const wt = join(repo, '.worktrees', 'unconventional');
-        git(['worktree', 'add', '-b', 'swarm/other/feat', wt, base]); // tail 'feat' matches; the direct path does not
+        git(['worktree', 'add', '-b', 'corpus/other/feat', wt, base]); // tail 'feat' matches; the direct path does not
         writeFileSync(join(wt, 'changed.ts'), 'x');
         const resolved = assertOk(resolve_review_run({ workspaceDir: repo, repoRoot: repo, task: 'TASK-feat' }));
         expect(resolved.diffChangedFiles).toContain('changed.ts');
     });
 
-    it('does NOT fall back to a NON-swarm branch whose tail matches the slug (#24)', () => {
-        scaffold({ withWorktree: false }); // no swarm/feat/feat worktree
+    it('does NOT fall back to a NON-corpus branch whose tail matches the slug (#24)', () => {
+        scaffold({ withWorktree: false }); // no corpus/feat/feat worktree
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
         const wt = join(repo, '.worktrees', 'feature-feat');
-        git(['worktree', 'add', '-b', 'feature/feat', wt, base]); // a non-swarm branch whose tail is 'feat'
+        git(['worktree', 'add', '-b', 'feature/feat', wt, base]); // a non-corpus branch whose tail is 'feat'
         writeFileSync(join(wt, 'changed.ts'), 'x');
-        // The fallback is restricted to swarm/* branches, so this unrelated worktree is not used.
+        // The fallback is restricted to corpus/* branches, so this unrelated worktree is not used.
         const error = assertErr(resolve_review_run({ workspaceDir: repo, repoRoot: repo, task: 'TASK-feat' }));
         expect(error).toBeDefined();
     });
@@ -220,8 +220,11 @@ describe('resolve_review_run (AC-017)', () => {
     // git repos — the documented dedicated-workspace layout that round-1 hit "no worktree found" on. The
     // command wires repoRoot via `--repo`; here we pass a distinct repoRoot directly.
     it('reconciles when the workspace and the code repo are separate git repos (--repo / split layout)', () => {
-        scaffold({ withWorktree: false, review: '---\ntype: review\nid: REVIEW-feat\ntask: TASK-feat\nstatus: draft\n---\n# r\n' });
-        const codeRepo = realpathSync(mkdtempSync(join(tmpdir(), 'swarm-code-')));
+        scaffold({
+            withWorktree: false,
+            review: '---\ntype: review\nid: REVIEW-feat\ntask: TASK-feat\nstatus: draft\n---\n# r\n',
+        });
+        const codeRepo = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-code-')));
         git(['init'], codeRepo);
         git(['config', 'user.email', 't@e.com'], codeRepo);
         git(['config', 'user.name', 'T'], codeRepo);
@@ -230,7 +233,7 @@ describe('resolve_review_run (AC-017)', () => {
         git(['commit', '-m', 'init'], codeRepo);
         const base = git(['rev-parse', '--abbrev-ref', 'HEAD'], codeRepo).trim();
         const wt = join(codeRepo, '.worktrees', 'feat-feat');
-        git(['worktree', 'add', '-b', 'swarm/feat/feat', wt, base], codeRepo);
+        git(['worktree', 'add', '-b', 'corpus/feat/feat', wt, base], codeRepo);
         writeFileSync(join(wt, 'changed.ts'), 'x');
 
         // artifacts resolve from the workspace `repo`; the worktree + diff resolve from `codeRepo`.
