@@ -55,7 +55,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
             return emit_error(usage_error('usage: corpus worktree create <slug> [--task <t>] [--base <branch>]'), json);
         }
         // The slug becomes a `.worktrees/<slug>` directory name — it must be a single safe segment so it
-        // cannot escape (`../…`) or nest (`a/b/c`), the same guard scaffold/cut use (corpus-hq #22).
+        // cannot escape (`../…`) or nest (`a/b/c`), the same guard scaffold/cut use (corpus-works #22).
         if (!is_safe_segment(slug)) {
             return emit_error(
                 usage_error(

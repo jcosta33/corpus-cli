@@ -19,4 +19,4 @@ agent-facing rules are not in this `docs/` tree — they live in the live Corpus
 - ➡️ **[`AGENTS.md`](../AGENTS.md)** — the always-loaded bootloader (startup, project facts, command bindings).
 - ➡️ **[`.claude/skills/`](../.claude/skills/)** — the `implement-task` guide plus this repo's engineering skills, each carrying its procedure inline.
 - ➡️ **The kit** — [corpus-starter-kit](https://github.com/jcosta33/corpus-starter-kit), which `corpus init` clones (its `advanced/` carries the SOL + checks reference cards).
-- ➡️ **Toolchain specs** — in the Corpus workspace (the sibling `corpus-hq` repo, `specs/`).
+- ➡️ **Toolchain specs** — in the Corpus workspace (the sibling `corpus-works` repo, `specs/`).

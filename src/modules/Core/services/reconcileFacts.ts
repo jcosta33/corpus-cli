@@ -58,7 +58,7 @@ export type SelfReportMismatch = Readonly<{
     claimedNotInDiff: readonly string[]; // Run summary claims it changed; the diff does not show it
     inDiffNotClaimed: readonly string[]; // the diff shows it changed; the Run summary never mentions it
     outsideScope: readonly string[]; // a changed path outside the declared Affected-areas scope
-    // The Run summary listed no machine-checkable file paths while the diff did change files (corpus-hq
+    // The Run summary listed no machine-checkable file paths while the diff did change files (corpus-works
     // #44): a prose summary that can't be reconciled. The `inDiffNotClaimed` flood is suppressed and
     // this is surfaced once instead — an informational note, not a finding (it never trips the level).
     runSummaryUnparsed: boolean;
@@ -86,7 +86,7 @@ function is_under_any_area(path: string, areas: readonly string[]): boolean {
 
 export function reconcile_self_report(input: SelfReportInput): SelfReportMismatch {
     // A prose Run summary parses to zero claimed paths; reconciling it against a non-empty diff would
-    // flag every changed file as `inDiffNotClaimed` (the corpus-hq #44 flood). When there is nothing
+    // flag every changed file as `inDiffNotClaimed` (the corpus-works #44 flood). When there is nothing
     // machine-checkable to reconcile against, suppress that class and surface a single note instead.
     // `outsideScope` is independent of the claim set (diff vs Affected areas), so it still computes.
     const runSummaryUnparsed = input.claimedChangedFiles.length === 0 && input.diffChangedFiles.length > 0;

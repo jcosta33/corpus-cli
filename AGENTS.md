@@ -2,11 +2,11 @@
 
 <!-- Always-loaded bootloader (aim ~100 lines). Procedures load on demand from
      `.agents/skills/`. This is a CODE repo: the Corpus workspace governing it
-     is the sibling corpus-hq repo. -->
+     is the sibling corpus-works repo. -->
 
 ## Corpus
 
-- Corpus workspace: `../corpus-hq` — read the task packet you are given. Specs,
+- Corpus workspace: `../corpus-works` — read the task packet you are given. Specs,
   tasks, reviews, findings, decisions, and the board live there, not here.
 - Implement against the packet: read its linked spec first; stay inside its
   scope (if a requirement can't be met as written, stop and say why instead of

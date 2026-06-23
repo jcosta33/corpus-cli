@@ -3,7 +3,7 @@
 The reference CLI for the [Corpus framework](https://github.com/jcosta33/corpus) — a **reconcile-only
 harness** for spec-driven agent work. It implements the checks contract in
 [`corpus/checks/checks.yaml`](https://github.com/jcosta33/corpus/blob/main/checks/checks.yaml); its own
-specs and reviews live in the family workspace, [corpus-hq](https://github.com/jcosta33/corpus-hq)
+specs and reviews live in the family workspace, [corpus-works](https://github.com/jcosta33/corpus-works)
 (the design of record is `corpus/docs/adrs/0077`).
 
 corpus-cli **prepares, checks, and reconciles** the work around the Corpus loop — it never runs the
@@ -135,4 +135,4 @@ deciding Pass/Fail are the human's (and a later milestone's) job.
 
 - [`AGENTS.md`](./AGENTS.md) — the bootloader for agents working on this repo
 - [`.agents/repo-conventions.md`](./.agents/repo-conventions.md) — the module architecture + soundness rules
-- The Corpus framework: [corpus](https://github.com/jcosta33/corpus) · the kit: [corpus-starter-kit](https://github.com/jcosta33/corpus-starter-kit) · the workspace: [corpus-hq](https://github.com/jcosta33/corpus-hq)
+- The Corpus framework: [corpus](https://github.com/jcosta33/corpus) · the kit: [corpus-starter-kit](https://github.com/jcosta33/corpus-starter-kit) · the workspace: [corpus-works](https://github.com/jcosta33/corpus-works)

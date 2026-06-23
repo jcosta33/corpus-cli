@@ -235,7 +235,7 @@ describe('C012 coverage (ADR-0079)', () => {
     });
 });
 
-describe('normalize_cmd (ADR-0083 / corpus-hq #16)', () => {
+describe('normalize_cmd (ADR-0083 / corpus-works #16)', () => {
     const bare = 'npm test -- auth-refresh.spec.ts';
     it('reduces the canon Verify-with forms (backtick-wrapped, trailing note, extra whitespace) to the same bare command', () => {
         expect(normalize_cmd(`\`${bare}\``)).toBe(bare);
@@ -290,7 +290,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (corpus-hq #16)', () => {
+    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (corpus-works #16)', () => {
         expect(
             verify_binding_facts(
                 base({
@@ -303,7 +303,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (corpus-hq #16)', () => {
+    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (corpus-works #16)', () => {
         expect(
             verify_binding_facts(
                 base({

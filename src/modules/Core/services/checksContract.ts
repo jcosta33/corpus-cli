@@ -445,7 +445,7 @@ export type VerifyBindingFinding = Readonly<{
 // Collapse whitespace, then strip a trailing note (a `(parenthetical)` OR an em/en-dash clause) and
 // surrounding backticks — the canon's own `Verify with:` format wraps the command in backticks and may
 // carry a trailing note (docs/04, the examples), while the review block records it bare; both sides MUST
-// normalize identically or a conformant block false-fires a cmd-mismatch (corpus-hq #16). The note is
+// normalize identically or a conformant block false-fires a cmd-mismatch (corpus-works #16). The note is
 // stripped before the backticks so the documented ``cmd`` (note) / ``cmd`` — note forms reduce cleanly to
 // the bare command. The dash form keys on an EM/EN dash (—/–), never the ASCII hyphen, so a real flag
 // like `npm test -- a.spec.ts` is never truncated (R4-ISS-11).
