@@ -127,9 +127,10 @@ scope stays empty (never invented). `new spec <slug>` scaffolds a fresh draft sp
 
 ## The boundary
 
-corpus-cli is **reconcile-only**. It never runs a model/agent, owns no chat UI, and never issues a
-review verdict — it prepares inputs, checks artifacts, and reconciles state. Running an agent and
-deciding Pass/Fail are the human's (and a later milestone's) job.
+corpus-cli is **reconcile-only**. `corpus run` can launch an external agent against a prepared
+worktree, but the CLI never owns the model/reasoning loop, writes no code itself, owns no chat UI,
+and never issues a review verdict — it prepares inputs, checks artifacts, and reconciles state.
+The Pass/Fail verdict stays the human's, informed by an independent review.
 
 ## Further reading
 
