@@ -75,30 +75,47 @@ export function check_review_file(input: CheckReviewFileInput): Result<CheckRevi
     const clean = (diagnostics: Diagnostic[]): Result<CheckReviewFileReport, AppError> =>
         ok({ path: input.reviewPath, level: verdict_for(diagnostics), diagnostics });
 
-    if (taskId === undefined) {
-        return clean([]);
+    // Resolve the source spec + the in-scope ids. Two keyed paths (ADR-0103 review-to-spec):
+    //  - TASK-keyed (the slice case): the review's `task:` → tasks/<id>.md → its `source:` spec; coverage
+    //    keys on the TASK's scope (this review owns only its slice's ACs).
+    //  - SPEC-keyed (the 1:1 case): no `task:`, the review names its spec directly via `spec:`; coverage
+    //    keys on the SPEC's full AC set — the spec is the unit, the task an optional accessory.
+    // The C012/C013/C016 checks then run identically against the resolved spec. `spec:` is an OPTIONAL
+    // review-frontmatter key (not in checks.yaml's required list, so it breaks no existing review).
+    let specSource: string | null;
+    let taskScope: readonly string[] | null;
+    if (taskId !== undefined) {
+        const taskSource = find_task_packet(input.workspaceDir, taskId);
+        if (taskSource === null) {
+            return clean([]);
+        }
+        taskScope = parse_task_packet(taskSource).scope;
+        const specId = scalar(read_frontmatter(taskSource).source);
+        specSource = specId !== undefined ? find_source_spec(input.workspaceDir, specId) : null;
+    } else {
+        // The task-less 1:1 review names its spec directly. With neither a task nor a `spec:` there is
+        // nothing to reconcile against (clean, as before).
+        const specId = scalar(reviewFrontmatter.spec);
+        specSource = specId !== undefined ? find_source_spec(input.workspaceDir, specId) : null;
+        taskScope = null;
     }
-    const taskSource = find_task_packet(input.workspaceDir, taskId);
-    if (taskSource === null) {
-        return clean([]);
-    }
-    const packet = parse_task_packet(taskSource);
-    const specId = scalar(read_frontmatter(taskSource).source);
-    const specSource = specId !== undefined ? find_source_spec(input.workspaceDir, specId) : null;
     if (specSource === null) {
         return clean([]);
     }
-    const parsedSpec = parse_spec_record({ source: specSource, path: `${taskId}:spec` });
+    const parsedSpec = parse_spec_record({ source: specSource, path: input.reviewPath });
     /* v8 ignore next 3 -- find_source_spec already read this file's frontmatter to match the id, so its `---` fence is intact; parse_spec_record only errs on a missing/unclosed fence */
     if (!isOk(parsedSpec)) {
         return clean([]);
     }
+    const specRequirementIds = parsedSpec.value.requirements.map((requirement) => requirement.id);
+    // The spec-keyed path keys coverage on the full spec; the task-keyed path narrows to the task scope.
+    const inScopeIds = taskScope ?? specRequirementIds;
 
     const review = parse_review_packet(reviewSource);
     const coverage = check_coverage({
         sourceSpecStatus: parsedSpec.value.frontmatter.status,
-        inScopeIds: packet.scope,
-        specRequirementIds: parsedSpec.value.requirements.map((requirement) => requirement.id),
+        inScopeIds,
+        specRequirementIds,
         coverageRowIds: review.coverageRows.map((row) => row.id),
     });
     // C013 (ADR-0083): the same verify-evidence-binding fact the `corpus review` reconcile surfaces —

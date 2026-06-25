@@ -325,3 +325,42 @@ describe('check_review_file — C016 pass-needs-evidence (the gate blocks an emp
         expect(report.level).toBe('blocking');
     });
 });
+
+describe('check_review_file — spec-keyed (task-less 1:1 review, ADR-0103 review-to-spec)', () => {
+    // A review that names its spec directly (`spec:`), with NO task. Coverage keys on the spec's FULL
+    // AC set — the spec is the unit, the task an optional accessory.
+    function specReview(rows: string): string {
+        return `---\ntype: review\nid: REVIEW-feat\nspec: SPEC-feat\nstatus: needs-human\n---\n\n# Review\n\n## Requirement coverage\n\n| ID | Result | Evidence | Human attention |\n|---|---|---|---|\n${rows}\n`;
+    }
+
+    it('keys C012 on the whole spec when there is no task — an uncovered AC is flagged', () => {
+        const path = join(dir, 'review.md');
+        writeFileSync(path, specReview('| AC-001 | Pass | p | no |')); // covers AC-001 only; AC-002 uncovered
+        const report = assertOk(check_review_file({ workspaceDir: dir, reviewPath: path }));
+        const c012 = report.diagnostics.filter((d) => d.code === 'C012');
+        expect(c012).toHaveLength(1);
+        expect(c012[0].message).toContain('AC-002');
+    });
+
+    it('is clean when the task-less review covers every spec AC', () => {
+        const path = join(dir, 'review.md');
+        writeFileSync(path, specReview('| AC-001 | Pass | p | no |\n| AC-002 | Pass | p | no |'));
+        const report = assertOk(check_review_file({ workspaceDir: dir, reviewPath: path }));
+        expect(report.diagnostics.filter((d) => d.code === 'C012')).toEqual([]);
+    });
+
+    it('reconciles nothing (clean) when a task-less review names no spec', () => {
+        const path = join(dir, 'review.md');
+        writeFileSync(path, `---\ntype: review\nid: REVIEW-x\nstatus: needs-human\n---\n\n## Requirement coverage\n\n| ID | Result | Evidence | Human attention |\n|---|---|---|---|\n| AC-001 | Pass | p | no |\n`);
+        const report = assertOk(check_review_file({ workspaceDir: dir, reviewPath: path }));
+        expect(report.diagnostics).toEqual([]);
+    });
+
+    it('flags an orphan row against the spec even with no task', () => {
+        const path = join(dir, 'review.md');
+        writeFileSync(path, specReview('| AC-001 | Pass | p | no |\n| AC-002 | Pass | p | no |\n| AC-099 | Unverified | p | no |'));
+        const report = assertOk(check_review_file({ workspaceDir: dir, reviewPath: path }));
+        const c012 = report.diagnostics.filter((d) => d.code === 'C012');
+        expect(c012.some((d) => d.message.includes('(orphan)') && d.message.includes('AC-099'))).toBe(true);
+    });
+});
