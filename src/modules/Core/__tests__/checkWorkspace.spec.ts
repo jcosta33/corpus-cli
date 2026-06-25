@@ -369,4 +369,56 @@ preserves: [PG-001]
         expect(report.changePlans[0].level).toBe('blocking');
         expect(report.verdict).toBe('blocking');
     });
+
+    // Supersede resolution advisory (ADR-0106 item 4, ungated by ADR-0108). Advisory: a warning, no
+    // C-id, never blocking — until measured 0-FP and promoted.
+    it('a superseded spec whose superseded_by resolves to a real spec raises no supersede finding', () => {
+        // SPEC-new is the live replacement; SPEC-old points at it and is marked superseded in place.
+        writeSpec('new', CONFORMANT.replace('id: SPEC-good', 'id: SPEC-new'));
+        writeSpec(
+            'old',
+            CONFORMANT.replace('id: SPEC-good', 'id: SPEC-old\nsuperseded_by: SPEC-new').replace(
+                'status: ready',
+                'status: superseded'
+            )
+        );
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.workspaceFindings.filter((f) => f.code.startsWith('supersede'))).toEqual([]);
+        expect(report.verdict).toBe('clean');
+    });
+
+    it('flags an unresolved superseded_by as a warning, never blocking', () => {
+        writeSpec(
+            'old',
+            CONFORMANT.replace('id: SPEC-good', 'id: SPEC-old\nsuperseded_by: SPEC-ghost').replace(
+                'status: ready',
+                'status: superseded'
+            )
+        );
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        const finding = report.workspaceFindings.find((f) => f.code === 'supersede-unresolved');
+        expect(finding?.level).toBe('warning');
+        expect(finding?.message).toContain('SPEC-ghost');
+        expect(report.verdict).toBe('clean'); // advisory — it does not block the merge
+        expect(report.level).toBe('warning');
+    });
+
+    it('flags a status: superseded spec that names no superseded_by replacement', () => {
+        writeSpec('old', CONFORMANT.replace('id: SPEC-good', 'id: SPEC-old').replace('status: ready', 'status: superseded'));
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        const finding = report.workspaceFindings.find((f) => f.code === 'supersede-missing-pointer');
+        expect(finding?.level).toBe('warning');
+        expect(report.verdict).toBe('clean');
+    });
+
+    it('a living spec with no supersession raises no supersede finding (the common case)', () => {
+        writeSpec('good', CONFORMANT.replace('status: ready', 'status: active'));
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.workspaceFindings.filter((f) => f.code.startsWith('supersede'))).toEqual([]);
+        expect(report.verdict).toBe('clean');
+    });
 });

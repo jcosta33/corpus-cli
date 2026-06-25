@@ -33,6 +33,11 @@ export type SpecRecordFrontmatter = Readonly<{
     status: string | null;
     format: string | null;
     sources: readonly string[];
+    // The whole-feature replacement pointer (ADR-0108 living specs): set ONLY when a spec is replaced
+    // wholesale (`status: superseded`), naming the SPEC-id that replaces it. null when absent (the
+    // common case — a living spec amends in place and never supersedes). The keep-clean tooling
+    // (ADR-0106) resolves it against the workspace's spec ids.
+    supersededBy: string | null;
 }>;
 
 export type SpecRecord = Readonly<{
@@ -136,6 +141,7 @@ function parse_frontmatter(lines: readonly string[], end_line: number): SpecReco
         status: scalars.get('status') ?? null,
         format: scalars.get('format') ?? null,
         sources,
+        supersededBy: scalars.get('superseded_by') ?? null,
     };
 }
 

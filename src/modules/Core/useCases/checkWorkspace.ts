@@ -20,7 +20,14 @@ import { build_source_exists } from './resolveSourcePath.ts';
 import type { OutcomeLevel } from './unixOutcome.ts';
 
 export type WorkspaceFinding = Readonly<{
-    code: 'C002' | 'C017' | 'placeholder' | 'missing-template' | 'agents-oversize';
+    code:
+        | 'C002'
+        | 'C017'
+        | 'placeholder'
+        | 'missing-template'
+        | 'agents-oversize'
+        | 'supersede-unresolved'
+        | 'supersede-missing-pointer';
     // SW-006: an unfilled {{placeholder}} in a freshly-scaffolded AGENTS.md is a "finish setup" nudge,
     // not broken work — it must NOT block the gate on day one (the kit's own AGENTS.md ships with
     // placeholders, so `corpus check` right after `corpus init` would otherwise greet a new user with a
@@ -163,6 +170,9 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
 
     const specs: WorkspaceSpecResult[] = [];
     const frontmatterIdToPaths = new Map<string, string[]>();
+    // Supersession pointers collected during the spec pass, resolved AFTER it (a `superseded_by` may
+    // name a spec that appears later in the sort order). ADR-0106 item 4 / ADR-0108.
+    const supersessions: { path: string; supersededBy: string | null; status: string | null }[] = [];
 
     for (const specPath of specFiles) {
         const specSource = readFileSync(specPath, 'utf8');
@@ -190,6 +200,13 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
                 specPath,
             ]);
         }
+        if (record.frontmatter.supersededBy !== null || record.frontmatter.status === 'superseded') {
+            supersessions.push({
+                path: specPath,
+                supersededBy: record.frontmatter.supersededBy,
+                status: record.frontmatter.status,
+            });
+        }
     }
 
     const findings: WorkspaceFinding[] =
@@ -200,6 +217,27 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
                 code: 'C002',
                 level: 'blocking',
                 message: `frontmatter id ${id} is claimed by ${paths.length} specs`,
+            });
+        }
+    }
+
+    // Supersede resolution (ADR-0106 item 4, ungated by ADR-0108): every `superseded_by` resolves to a
+    // real spec id, and a `status: superseded` spec names its replacement. Deterministic set-membership
+    // (a strong 0-FP candidate, like the spec-coverage-drift advisory) — but ADVISORY: a `warning`, no
+    // C-id, no checks.yaml rule, until measured 0-FP on the real corpus and promoted (ADR-0063).
+    for (const { path, supersededBy, status } of supersessions) {
+        if (supersededBy !== null && !frontmatterIdToPaths.has(supersededBy)) {
+            findings.push({
+                code: 'supersede-unresolved',
+                level: 'warning',
+                message: `${path} declares superseded_by: ${supersededBy} but no spec with that id exists in this workspace`,
+            });
+        }
+        if (status === 'superseded' && supersededBy === null) {
+            findings.push({
+                code: 'supersede-missing-pointer',
+                level: 'warning',
+                message: `${path} is status: superseded but names no superseded_by spec (a superseded spec points at its replacement, ADR-0108)`,
             });
         }
     }

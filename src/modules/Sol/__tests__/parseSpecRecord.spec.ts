@@ -45,6 +45,14 @@ describe('parse_spec_record', () => {
         expect(record.frontmatter.status).toBe('ready');
         expect(record.frontmatter.format).toBeNull();
         expect(record.frontmatter.sources).toEqual(['ADR-0077', '../corpus/docs/adrs/0077.md', 'JIRA-9']);
+        expect(record.frontmatter.supersededBy).toBeNull(); // absent on a living spec — the common case
+    });
+
+    it('reads the superseded_by replacement pointer when present (ADR-0108)', () => {
+        const source = '---\ntype: spec\nid: SPEC-old\nstatus: superseded\nsuperseded_by: SPEC-new\nsources:\n  - self\n---\n\n## Requirements\n';
+        const record = assertOk(parse_spec_record({ source, path: 'spec.md' }));
+        expect(record.frontmatter.supersededBy).toBe('SPEC-new');
+        expect(record.frontmatter.status).toBe('superseded');
     });
 
     it('extracts requirements (skipping non-id H3 group headings) with their body', () => {
