@@ -13,6 +13,7 @@ export {
     worktree_changed_stats,
     is_worktree_dirty,
     paths_changed_since,
+    path_is_tracked,
 } from './git.ts';
 export { write_new_file, type FileExistsError } from './files.ts';
 // emit engine — `corpus agents emit --codex`: projects agent defs to Codex TOML (ADR-0098). A runner

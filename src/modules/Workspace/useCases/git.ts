@@ -457,3 +457,17 @@ export function paths_changed_since(repoRoot: string, sha: string): string[] | n
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 }
+
+/**
+ * Whether a path is tracked by git in this repo (committed), vs gitignored/untracked. `corpus clean
+ * --apply` uses this to decide delete (gitignored ephemeral — recoverable from the run) vs archive
+ * (committed-transitory — moved under archive/, ADR-0096). Outside a git repo `git ls-files` is
+ * non-zero, so the path reads untracked — callers that need the distinction resolve the repo first.
+ */
+export function path_is_tracked(repoRoot: string, relPath: string): boolean {
+    const result = spawnSync('git', ['ls-files', '--error-unmatch', '--', relPath], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    });
+    return result.status === 0;
+}

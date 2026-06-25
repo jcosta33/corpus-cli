@@ -43,6 +43,7 @@ export {
     type CleanKind,
     type ScanCleanInput,
 } from './scanCleanCandidates.ts';
+export { apply_clean, type CleanResult, type ApplyCleanInput } from './applyClean.ts';
 export {
     scan_spec_staleness,
     type StalenessReport,

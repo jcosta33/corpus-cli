@@ -58,12 +58,12 @@ export const COMMAND_CATALOG = [
     },
     {
         name: 'clean',
-        description: 'Report spent ephemeral artifacts (tasks/reviews) for pruning',
+        description: 'Prune spent ephemeral artifacts (tasks/reviews) — dry run, or --apply',
         usage: [
             'corpus clean',
-            '  (report-only v0)            list tasks/reviews whose work reached a terminal status',
+            '  (no flag)                   dry run: list tasks/reviews whose work reached a terminal status',
+            '  --apply                     prune them — delete gitignored, archive committed (needs a git repo)',
             '  --json                      machine output',
-            '  --apply                     (deferred — prints a notice until the prune policy is ratified)',
         ],
     },
     {
