@@ -92,6 +92,20 @@ describe('scan_spec_staleness (ADR-0108 item 4; SPEC-spec-staleness-detection)',
         expect(report.stale).toEqual([]); // sibling absent → falls back to this repo; the area is not under it
     });
 
+    it('a prefixed area whose snapshot SHA does not resolve in the fallback repo never false-flags (SHA-gated 0-FP)', () => {
+        // The sibling ../<prefix> is absent → resolve falls back to THIS repo. The snapshot is a foreign
+        // SHA that does not exist here, so paths_changed_since returns null → the area skips. This holds
+        // even when a workspace dir happens to be named like the prefix and a file under it changed.
+        mkdirSync(join(repo, 'corpus-cli', 'src'), { recursive: true });
+        writeFileSync(join(repo, 'corpus-cli', 'src', 'foo.ts'), 'v1\n');
+        git(['add', '.']);
+        git(['commit', '-m', 'c']);
+        writeSpec({ snapshot: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef', area: 'corpus-cli/src/foo.ts' });
+        writeFileSync(join(repo, 'corpus-cli', 'src', 'foo.ts'), 'v2\n'); // a real change, but the SHA is foreign here
+        const report = assertOk(scan_spec_staleness({ workspaceDir: repo, repoRoot: repo }));
+        expect(report.stale).toEqual([]); // foreign SHA unresolvable in the fallback repo → skipped
+    });
+
     it('cross-root: resolves a sibling-repo area and flags drift THERE (corpus-cli#2)', () => {
         // A dedicated-workspace layout: the spec lives in `ws`, its code in the sibling repo `sib`.
         const parent = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-stale-xroot-')));

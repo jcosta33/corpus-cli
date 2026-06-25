@@ -6,7 +6,7 @@
 // the candidate paths the scan already restricted to spent tasks//reviews — never the durable set.
 
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
-import { join, dirname, relative } from 'path';
+import { join, dirname, relative, isAbsolute } from 'path';
 
 import { ok, type Result } from '../../../infra/errors/result.ts';
 import type { AppError } from '../../../infra/errors/createAppError.ts';
@@ -31,6 +31,13 @@ export function apply_clean(input: ApplyCleanInput): Result<CleanResult, AppErro
     const archived: string[] = [];
     for (const candidate of input.candidates) {
         const abs = join(input.workspaceDir, candidate.path);
+        // Defense-in-depth: never act on a path that escapes the workspace. scan_clean_candidates only
+        // yields immediate tasks//reviews/ filenames, but apply_clean is exported + destructive — a
+        // candidate whose path normalizes outside the workspace (a `..` traversal) is refused outright.
+        const within = relative(input.workspaceDir, abs);
+        if (within.startsWith('..') || isAbsolute(within)) {
+            continue;
+        }
         if (!existsSync(abs)) {
             continue; // already gone (a concurrent prune); nothing to do
         }

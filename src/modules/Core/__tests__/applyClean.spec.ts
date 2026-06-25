@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { execFileSync } from 'child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, realpathSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, relative } from 'path';
 
 import { assertOk } from '../../../infra/errors/testing/assertOk.ts';
 import { apply_clean } from '../useCases/applyClean.ts';
@@ -69,5 +69,20 @@ describe('apply_clean (SPEC-corpus-clean --apply; ADR-0096/0104)', () => {
         const result = assertOk(apply_clean({ workspaceDir: repo, repoRoot: repo, candidates: [] }));
         expect(result.deleted).toEqual([]);
         expect(result.archived).toEqual([]);
+    });
+
+    it('refuses a candidate whose path escapes the workspace (defense-in-depth)', () => {
+        const outside = realpathSync(mkdtempSync(join(tmpdir(), 'corpus-outside-')));
+        const sentinel = join(outside, 'keep.md');
+        writeFileSync(sentinel, 'do not touch\n');
+        const escaping = relative(repo, sentinel); // ../corpus-outside-xxx/keep.md
+        const result = assertOk(
+            apply_clean({ workspaceDir: repo, repoRoot: repo, candidates: [candidate(escaping, 'review', 'pass')] })
+        );
+        const untouched = existsSync(sentinel);
+        rmSync(outside, { recursive: true, force: true });
+        expect(result.deleted).toEqual([]);
+        expect(result.archived).toEqual([]);
+        expect(untouched).toBe(true); // the escaping path was refused, the outside file is intact
     });
 });

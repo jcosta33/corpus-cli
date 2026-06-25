@@ -433,7 +433,8 @@ export function is_worktree_dirty(worktreePath: string): boolean {
  * The repo-relative paths that changed between a snapshot commit and the working tree (ADR-0108 item 4
  * staleness). Returns `null` — meaning "cannot determine, skip" — when the SHA does not resolve in this
  * repo or git fails, so the advisory degrades to silence rather than a false flag (0-FP by construction).
- * Compares `<sha>` to the working tree (committed-since + unstaged), so a still-uncommitted edit counts.
+ * Compares `<sha>` to the working tree (`git diff <sha>`: committed-since + staged + unstaged), so a
+ * still-uncommitted edit counts.
  */
 export function paths_changed_since(repoRoot: string, sha: string): string[] | null {
     // Resolve the SHA to a commit first; an unknown/invalid ref degrades to null (skip), never a flag.
@@ -459,10 +460,11 @@ export function paths_changed_since(repoRoot: string, sha: string): string[] | n
 }
 
 /**
- * Whether a path is tracked by git in this repo (committed), vs gitignored/untracked. `corpus clean
- * --apply` uses this to decide delete (gitignored ephemeral — recoverable from the run) vs archive
- * (committed-transitory — moved under archive/, ADR-0096). Outside a git repo `git ls-files` is
- * non-zero, so the path reads untracked — callers that need the distinction resolve the repo first.
+ * Whether a path is tracked by git — present in the index (committed OR staged), via
+ * `git ls-files --error-unmatch` — vs gitignored/untracked. `corpus clean --apply` uses this to decide
+ * delete (gitignored ephemeral — recoverable from the run) vs archive (committed-transitory — moved
+ * under archive/, ADR-0096). Outside a git repo `git ls-files` is non-zero, so the path reads
+ * untracked — callers that need the distinction resolve the repo first.
  */
 export function path_is_tracked(repoRoot: string, relPath: string): boolean {
     const result = spawnSync('git', ['ls-files', '--error-unmatch', '--', relPath], {
