@@ -62,10 +62,10 @@ Each command is both a Unix part and an interactive flow:
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `corpus init [dir]`                             | Scaffold a workspace from the corpus-starter-kit, conflict-safe                                  |
 | `corpus update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely      |
-| `corpus check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg)                              |
+| `corpus check [file]`                           | Lint one spec (positional), or the whole-workspace verdict (no arg); `--staleness` for spec drift |
 | `corpus worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `corpus/<spec-slug>` branches                                  |
 | `corpus status`                                 | A read-only derived board over specs ← tasks ← reviews                                           |
-| `corpus clean`                                  | Report spent ephemeral artifacts (tasks/reviews at a terminal status) — read-only v0             |
+| `corpus clean`                                  | Prune spent ephemeral artifacts (tasks/reviews) — dry run, or `--apply`                          |
 | `corpus review <task>`                          | Reconcile a finished run — diff vs self-report vs spec; the human owns the verdict               |
 | `corpus new <task\|spec>`                       | Cut a task packet from a spec (scope never invented), or scaffold a spec                         |
 | `corpus pull <ref>`                             | Snapshot a ticket into `intake/` — verbatim, never a spec or the board                           |
