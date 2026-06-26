@@ -57,6 +57,7 @@ export {
     type ReconcileReviewInput,
 } from './reconcileReview.ts';
 export { resolve_review_run, type ResolveReviewRunInput } from './resolveReviewRun.ts';
+export { resolve_review_run_by_spec, type ResolveReviewRunBySpecInput } from './resolveReviewRunBySpec.ts';
 export { draft_review_packet, type DraftReviewPacketInput, type DraftReviewPacket } from './draftReviewPacket.ts';
 
 // drift engine — corpus update --check, no agent, no write (SPEC-corpus-update, ADR-0091)

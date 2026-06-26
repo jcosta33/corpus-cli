@@ -38,8 +38,10 @@ import {
 import type { OutcomeLevel } from './unixOutcome.ts';
 
 export type ReconcileReviewInput = Readonly<{
-    task: string; // the resolved task id/slug (carried into the report for the human)
-    taskPacketSource: string;
+    task: string; // the resolved task id/slug (carried into the report for the human), or the spec id (no-task)
+    // The task packet markdown, or null for the task-less 1:1 review (ADR-0103 review-to-spec): coverage
+    // then keys on the spec's full ACs and the self-report is read from the spec's `## Execution`.
+    taskPacketSource: string | null;
     specSource: string;
     // The review packet's markdown, or null when no review packet exists yet (every in-scope id then
     // reads uncovered, AC-019).
@@ -122,6 +124,32 @@ const EMPTY_PACKET_FACTS: PacketStructuralFacts = {
 // Any reconcile finding present → the advisory `warning` level (exit 1, AC-024). A clean reconcile →
 // `clean` (exit 0). The engine never returns `blocking`: every reconcile fact is advisory, and a hard
 // error is reserved for the command's Err arm (bad git / usage / no workspace).
+// The backtick-wrapped paths under a `## <section>` heading of the spec — path-shaped tokens only (a
+// slash or a dot-extension, never a `{{placeholder}}`). Used in the task-less case to read the spec's
+// declared `## Affected areas` and the implementer's self-reported changed files from `## Execution`.
+function backtick_paths_in_section(source: string, sectionName: RegExp): string[] {
+    const lines = source.split(/\r\n|[\r\n]/);
+    const out: string[] = [];
+    let inSection = false;
+    for (const line of lines) {
+        const heading = /^##\s+(.*\S)\s*$/.exec(line);
+        if (heading !== null) {
+            inSection = sectionName.test(heading[1].trim());
+            continue;
+        }
+        if (!inSection) {
+            continue;
+        }
+        for (const match of line.matchAll(/`([^`]+)`/g)) {
+            const path = match[1].trim();
+            if (!path.includes('{{') && (path.includes('/') || /\.\w+$/.test(path))) {
+                out.push(path);
+            }
+        }
+    }
+    return out;
+}
+
 function level_for(report: Omit<ReviewReport, 'level'>): OutcomeLevel {
     const hasFinding =
         report.coverage.length > 0 ||
@@ -151,9 +179,27 @@ export function reconcile_review(input: ReconcileReviewInput): Result<ReviewRepo
         );
     }
     const spec = parsedSpec.value;
-    const packet = parse_task_packet(input.taskPacketSource);
-
     const specRequirementIds = spec.requirements.map((requirement) => requirement.id);
+
+    // The scope + self-report come from the task packet when there is one (the slice case), else from the
+    // spec itself (the task-less 1:1 case, ADR-0103): scope = the spec's full ACs, the claimed changed
+    // files = the spec's `## Execution` self-report, the declared areas = the spec's `## Affected areas`,
+    // and there is no `## Do not change` list (that is a task-only construct).
+    const packetData =
+        input.taskPacketSource !== null
+            ? ((p) => ({
+                  scope: p.scope,
+                  claimedChangedFiles: p.claimedChangedFiles,
+                  affectedAreas: p.affectedAreas,
+                  doNotChange: p.doNotChange,
+              }))(parse_task_packet(input.taskPacketSource))
+            : {
+                  scope: specRequirementIds,
+                  claimedChangedFiles: backtick_paths_in_section(input.specSource, /^execution$/i),
+                  affectedAreas: backtick_paths_in_section(input.specSource, /^affected areas$/i),
+                  doNotChange: [] as readonly string[],
+              };
+
     const reviewPacket = input.reviewPacketSource !== null ? parse_review_packet(input.reviewPacketSource) : null;
     const coverageRowIds = reviewPacket !== null ? reviewPacket.coverageRows.map((row) => row.id) : [];
 
@@ -162,7 +208,7 @@ export function reconcile_review(input: ReconcileReviewInput): Result<ReviewRepo
     // the SPEC-keyed checks below (C012 coverage + scope↔spec divergence) must not flag them — doing so
     // false-fired "uncovered" + "scope≠spec" on every migration (R4-ISS-02 / R4-ISS-05). The change plan's
     // own checks (C010) verify the guarantees; the task review only owns the spec-requirement coverage.
-    const specKeyedScope = packet.scope.filter((id) => !/^PG-\d+$/.test(id));
+    const specKeyedScope = packetData.scope.filter((id) => !/^PG-\d+$/.test(id));
 
     const coverage: CoverageFinding[] = coverage_facts({
         sourceSpecStatus: spec.frontmatter.status,
@@ -188,14 +234,15 @@ export function reconcile_review(input: ReconcileReviewInput): Result<ReviewRepo
             : [];
 
     const selfReport = reconcile_self_report({
-        claimedChangedFiles: packet.claimedChangedFiles,
+        claimedChangedFiles: packetData.claimedChangedFiles,
         diffChangedFiles: input.diffChangedFiles,
-        affectedAreas: packet.affectedAreas,
+        affectedAreas: packetData.affectedAreas,
     });
 
     // C014 (ADR-0086): changed files touching a `## Do not change` entry. Not draft-guarded — it
-    // reconciles task-packet intent against the diff, independent of the spec's draft status.
-    const doNotChangeTouched = do_not_change_touched(input.diffChangedFiles, packet.doNotChange);
+    // reconciles task-packet intent against the diff, independent of the spec's draft status. Empty in
+    // the task-less case (Do-not-change is a task-only construct).
+    const doNotChangeTouched = do_not_change_touched(input.diffChangedFiles, packetData.doNotChange);
 
     const packetStructural = reviewPacket !== null ? packet_structural_facts(reviewPacket) : EMPTY_PACKET_FACTS;
     const emptyEvidencePassRows = reviewPacket !== null ? empty_evidence_pass_rows(reviewPacket.coverageRows) : [];

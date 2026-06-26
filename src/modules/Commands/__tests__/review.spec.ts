@@ -285,6 +285,18 @@ describe('review command — finished-run reconcile (AC-017/024)', () => {
         git(['commit', '--allow-empty', '-m', 'init']);
         expect((await capture(() => run(['TASK-missing'], repo))).code).toBe(2);
     });
+
+    it('reviews a task-less spec by id with --repo (review-to-spec, ADR-0103)', async () => {
+        buildRun(); // sets up SPEC-feat (no review packet names it → its ACs read uncovered)
+        const { code, out } = await capture(() => run(['SPEC-feat', '--repo', '.'], repo));
+        expect([0, 1]).toContain(code); // advisory (clean/warning), never a hard error
+        expect(out).toContain('review SPEC-feat'); // keyed on the spec, not a task
+    });
+
+    it('errors (exit 2) when the arg matches neither a task nor a spec', async () => {
+        buildRun();
+        expect((await capture(() => run(['SPEC-nope'], repo))).code).toBe(2);
+    });
 });
 
 describe('review command — the boundary (AC-023/025/026)', () => {

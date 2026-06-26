@@ -22,6 +22,8 @@ import {
     emit_error,
     usage_error,
     resolve_review_run,
+    resolve_review_run_by_spec,
+    resolve_task,
     reconcile_review,
     draft_review_packet,
     task_slug,
@@ -89,7 +91,13 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
     }
     const base = typeof baseFlag === 'string' ? baseFlag : undefined;
 
-    const resolved = resolve_review_run({ workspaceDir: cwd, repoRoot, task, base });
+    // Review-to-spec (ADR-0103): if the arg resolves to a task, reconcile the task run (task-keyed,
+    // worktree diff). Otherwise treat it as a SPEC id/slug and reconcile the task-less 1:1 review —
+    // coverage on the spec's full ACs, self-report from its `## Execution`, diff from `--repo`/`--base`.
+    const resolved =
+        resolve_task(cwd, task) !== null
+            ? resolve_review_run({ workspaceDir: cwd, repoRoot, task, base })
+            : resolve_review_run_by_spec({ workspaceDir: cwd, repoRoot, spec: task, base });
     if (isErr(resolved)) {
         return emit_error(resolved.error, json);
     }

@@ -525,3 +525,63 @@ describe('reconcile_review — errors', () => {
         expect(isOk(result)).toBe(false);
     });
 });
+
+describe('reconcile_review — task-less (spec-keyed, ADR-0103 review-to-spec)', () => {
+    const SPEC_WITH_EXEC = `---
+type: spec
+id: SPEC-feat
+status: ready
+sources:
+  - self
+---
+
+## Requirements
+
+### AC-001 — one
+The tool must do it.
+Verify with: a test.
+
+### AC-002 — two
+The tool must do it.
+Verify with: a test.
+
+## Affected areas
+
+- \`src/a.ts\`
+
+## Execution
+
+- Affected areas: \`src/a.ts\`
+- Run summary: ran \`corpus check\` — a non-path backtick the parser must ignore
+`;
+
+    it('keys coverage on the spec ACs and reads the self-report from ## Execution', () => {
+        const report = ok({
+            task: 'SPEC-feat',
+            taskPacketSource: null, // no task
+            specSource: SPEC_WITH_EXEC,
+            diffChangedFiles: ['src/a.ts'],
+            reviewPacketSource: reviewSource({ rows: [{ id: 'AC-001', result: 'Pass', evidence: 'p', verify: true }] }),
+        });
+        // coverage keys on the FULL spec → AC-002 is uncovered (the spec is the unit)
+        expect(report.coverage.filter((c) => c.kind === 'uncovered').map((c) => c.id)).toEqual(['AC-002']);
+        // self-report: the Execution claims src/a.ts, the diff shows src/a.ts → reconciled clean
+        expect(report.selfReport.claimedNotInDiff).toEqual([]);
+        expect(report.selfReport.inDiffNotClaimed).toEqual([]);
+        // task-only constructs are inert: no do-not-change, no scope-vs-spec divergence, no drift
+        expect(report.doNotChangeTouched).toEqual([]);
+        expect(report.scopeDivergence).toEqual([]);
+        expect(report.specCoverageDrift).toBeNull();
+    });
+
+    it('surfaces a self-report mismatch from ## Execution vs the diff', () => {
+        const report = ok({
+            task: 'SPEC-feat',
+            taskPacketSource: null,
+            specSource: SPEC_WITH_EXEC, // Execution claims only src/a.ts
+            diffChangedFiles: ['src/a.ts', 'src/b.ts'], // b.ts changed but the spec never claims it
+            reviewPacketSource: null,
+        });
+        expect(report.selfReport.inDiffNotClaimed).toContain('src/b.ts');
+    });
+});

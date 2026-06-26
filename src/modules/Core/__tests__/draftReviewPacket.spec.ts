@@ -199,3 +199,18 @@ describe('draft_review_packet — errors', () => {
         expect(result.ok).toBe(false);
     });
 });
+
+describe('draft_review_packet — task-less (spec-keyed scope, ADR-0103 review-to-spec)', () => {
+    it('drafts with the spec ACs as the in-scope ids when there is no task', () => {
+        const draft = assertOk(draft_review_packet(input({ taskPacketSource: null })));
+        // a coverage row per spec AC (specSource defaults to AC-001/AC-002)
+        const packet = parse_review_packet(draft.markdown);
+        expect(packet.coverageRows.map((r) => r.id).sort()).toEqual(['AC-001', 'AC-002']);
+    });
+
+    it('errors EmptyScope when a task-less spec has no ACs', () => {
+        const result = draft_review_packet(input({ taskPacketSource: null, specSource: specSource({ ids: [] }) }));
+        const error = assertErr(result);
+        expect(error.message).toContain('no scope');
+    });
+});

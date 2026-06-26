@@ -229,12 +229,20 @@ export function draft_review_packet(input: DraftReviewPacketInput): Result<Draft
     }
     const report = reconciled.value;
 
-    const packet = parse_task_packet(input.taskPacketSource);
-    if (packet.scope.length === 0) {
+    // The in-scope ids: the task's scope (the slice case), or the spec's full ACs (the task-less 1:1
+    // case — review-to-spec, ADR-0103).
+    const inScopeIds =
+        input.taskPacketSource !== null
+            ? parse_task_packet(input.taskPacketSource).scope
+            : (() => {
+                  const parsed = parse_spec_record({ source: input.specSource, path: `${input.task}:spec` });
+                  return isErr(parsed) ? [] : parsed.value.requirements.map((requirement) => requirement.id);
+              })();
+    if (inScopeIds.length === 0) {
         return err(
             createAppError(
                 'EmptyScope',
-                `cannot draft a review for ${input.task}: its task packet declares no scope (no in-scope requirement ids)`,
+                `cannot draft a review for ${input.task}: no scope — no in-scope requirement ids (an empty task scope, or a spec with no ACs)`,
                 { task: input.task }
             )
         );
@@ -247,7 +255,7 @@ export function draft_review_packet(input: DraftReviewPacketInput): Result<Draft
     const markdown = render_draft({
         slug: input.slug,
         title,
-        inScopeIds: packet.scope,
+        inScopeIds,
         changedFiles: report.diffChangedFiles,
         evidence: evidence_by_id(input),
         attention: human_attention(report),
