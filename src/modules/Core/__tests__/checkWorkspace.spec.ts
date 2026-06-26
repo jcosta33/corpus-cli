@@ -508,4 +508,38 @@ preserves: [PG-001]
         expect(flagged.some((m) => m.includes('cache-bug'))).toBe(true);
         expect(flagged.some((m) => m.includes('retry_storm'))).toBe(true);
     });
+
+    // ADR-0110 — the incomplete-execution-digest advisory (0-FP: only a half-stamped entry flags).
+    const digestFindings = (): string[] =>
+        assertOk(check_workspace({ workspaceDir: ws })).workspaceFindings
+            .filter((f) => f.code === 'incomplete-execution-digest')
+            .map((f) => f.message);
+
+    it('does NOT flag an Execution entry with a COMPLETE digest (both pins filled)', () => {
+        writeSpec('feat', `${CONFORMANT}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n  - reviewed-sha: \`abc1234\` · evidence-hash: \`deadbeefcafe0000\`\n`);
+        withTemplates();
+        expect(digestFindings()).toEqual([]);
+    });
+
+    it('does NOT flag a prose Execution entry with NO digest (legacy / simple 1:1 work)', () => {
+        writeSpec('feat', `${CONFORMANT}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n  - Run summary: changed login.ts; ran the suite.\n`);
+        withTemplates();
+        expect(digestFindings()).toEqual([]);
+    });
+
+    it('FLAGS a half-stamped Execution entry (one pin, not the other) as a warning, never blocking', () => {
+        writeSpec('feat', `${CONFORMANT}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n  - reviewed-sha: \`abc1234\`\n`);
+        withTemplates();
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        const finding = report.workspaceFindings.find((f) => f.code === 'incomplete-execution-digest');
+        expect(finding?.level).toBe('warning');
+        expect(finding?.message).toMatch(/one staleness pin but not the other/);
+        expect(report.verdict).not.toBe('blocking');
+    });
+
+    it('does NOT flag pins left as unfilled {{placeholders}} (a freshly-scaffolded spec)', () => {
+        writeSpec('feat', `${CONFORMANT}\n## Execution\n\n- **{{date}} — {{summary}}**\n  - reviewed-sha: {{code SHA reviewed}} · evidence-hash: {{written by corpus stamp}}\n`);
+        withTemplates();
+        expect(digestFindings()).toEqual([]);
+    });
 });

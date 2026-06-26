@@ -29,7 +29,8 @@ export type WorkspaceFinding = Readonly<{
         | 'supersede-unresolved'
         | 'supersede-missing-pointer'
         | 'duplicate-content'
-        | 'unpromoted-finding';
+        | 'unpromoted-finding'
+        | 'incomplete-execution-digest';
     // SW-006: an unfilled {{placeholder}} in a freshly-scaffolded AGENTS.md is a "finish setup" nudge,
     // not broken work — it must NOT block the gate on day one (the kit's own AGENTS.md ships with
     // placeholders, so `corpus check` right after `corpus init` would otherwise greet a new user with a
@@ -174,6 +175,60 @@ function finding_candidates(source: string): string[] {
     return out;
 }
 
+// Incomplete-execution-digest advisory (ADR-0110): a `## Execution` change-cycle entry carrying ONE
+// staleness pin (`reviewed-sha:` / `evidence-hash:`) but not the other is a half-written stamp. 0-FP by
+// construction — an entry with NEITHER pin is a prose/legacy entry (allowed), an entry with BOTH is a
+// complete digest, only the XOR is flagged; a pin counts only when FILLED (a `{{placeholder}}` value does
+// not count, so a freshly-scaffolded spec never trips). An entry is a top-level `- ` bullet under
+// `## Execution`; its indented sub-bullets belong to it. Returns the dated labels of half-stamped entries.
+function incomplete_execution_digests(source: string): string[] {
+    const lines = source.split(/\r\n|[\r\n]/);
+    let inExecution = false;
+    let label: string | null = null;
+    let hasSha = false;
+    let hasHash = false;
+    const out: string[] = [];
+    const real_pin = (rest: string): boolean => {
+        const value = rest.trim();
+        return value.length > 0 && !value.includes('{{');
+    };
+    const flush = (): void => {
+        if (label !== null && hasSha !== hasHash) {
+            out.push(label);
+        }
+        label = null;
+        hasSha = false;
+        hasHash = false;
+    };
+    for (const line of lines) {
+        const heading = /^##\s+(.*\S)\s*$/.exec(line);
+        if (heading !== null) {
+            flush();
+            inExecution = /^execution$/i.test(heading[1].trim());
+            continue;
+        }
+        if (!inExecution) {
+            continue;
+        }
+        // A non-indented `- ` bullet opens a new entry; close the previous one first.
+        if (/^-\s+/.test(line)) {
+            flush();
+            label = line.replace(/^-\s+/, '').trim();
+        }
+        // Pins may sit on the entry line or an indented sub-bullet; read up to the `·` separator.
+        const sha = /reviewed[-_]sha:\s*([^·|]*)/i.exec(line);
+        if (sha !== null && real_pin(sha[1])) {
+            hasSha = true;
+        }
+        const hash = /evidence[-_]hash:\s*([^·|]*)/i.exec(line);
+        if (hash !== null && real_pin(hash[1])) {
+            hasHash = true;
+        }
+    }
+    flush();
+    return out;
+}
+
 function workspace_validity(workspaceDir: string): WorkspaceFinding[] {
     const findings: WorkspaceFinding[] = [];
     for (const liveFile of ['AGENTS.md', 'status.md']) {
@@ -241,6 +296,8 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
     const supersessions: { path: string; supersededBy: string | null; status: string | null }[] = [];
     // Finding candidates a spec's `## Execution` declares, resolved AFTER the pass against findings/.
     const candidatesBySpec: { path: string; slugs: readonly string[] }[] = [];
+    // Half-stamped `## Execution` entries (ADR-0110) — one staleness pin without the other.
+    const incompleteDigestsBySpec: { path: string; labels: readonly string[] }[] = [];
 
     for (const specPath of specFiles) {
         const specSource = readFileSync(specPath, 'utf8');
@@ -278,6 +335,10 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
         const slugs = finding_candidates(specSource);
         if (slugs.length > 0) {
             candidatesBySpec.push({ path: specPath, slugs });
+        }
+        const incompleteDigests = incomplete_execution_digests(specSource);
+        if (incompleteDigests.length > 0) {
+            incompleteDigestsBySpec.push({ path: specPath, labels: incompleteDigests });
         }
     }
 
@@ -336,6 +397,19 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
                     message: `${path} names finding candidate "${slug}" but findings/${slug}.md does not exist — promote it (corpus promote) or drop the mention`,
                 });
             }
+        }
+    }
+
+    // Incomplete-execution-digest (ADR-0110): a `## Execution` entry that is half-stamped — one staleness
+    // pin without the other. Deterministic 0-FP (no digest is allowed; both is complete; only the XOR
+    // flags). Advisory warning, reconcile-only — no checks.yaml rule, never blocks (ADR-0063/0077).
+    for (const { path, labels } of incompleteDigestsBySpec) {
+        for (const label of labels) {
+            findings.push({
+                code: 'incomplete-execution-digest',
+                level: 'warning',
+                message: `${path}: Execution entry "${label}" has one staleness pin but not the other — complete it (reviewed-sha + evidence-hash, via corpus stamp) or drop both (ADR-0110)`,
+            });
         }
     }
 
