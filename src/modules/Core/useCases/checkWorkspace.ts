@@ -31,7 +31,8 @@ export type WorkspaceFinding = Readonly<{
         | 'duplicate-content'
         | 'unpromoted-finding'
         | 'incomplete-execution-digest'
-        | 'active-spec-no-execution';
+        | 'active-spec-no-execution'
+        | 'nonactive-spec-with-execution';
     // SW-006: an unfilled {{placeholder}} in a freshly-scaffolded AGENTS.md is a "finish setup" nudge,
     // not broken work — it must NOT block the gate on day one (the kit's own AGENTS.md ships with
     // placeholders, so `corpus check` right after `corpus init` would otherwise greet a new user with a
@@ -301,6 +302,9 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
     const incompleteDigestsBySpec: { path: string; labels: readonly string[] }[] = [];
     // `status: active` specs missing a `## Execution` section (ADR-0116, spec-side invariant).
     const activeSpecsWithoutExecution: string[] = [];
+    // The other direction (FINDING-0116): a non-active spec (draft/ready/done) that DOES carry a
+    // `## Execution` section — shipped work whose status was never flipped to in-force (ADR-0116, M4 case).
+    const nonactiveSpecsWithExecution: string[] = [];
 
     for (const specPath of specFiles) {
         const specSource = readFileSync(specPath, 'utf8');
@@ -350,11 +354,33 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
         // examples excluded), so `## Execution` detection is the same parse the digest checks key on — no
         // new freeform parsing. 0-FP by construction: gated on the in-force `active` status alone, so a
         // draft/ready/in-flight spec (not yet shipped) and a superseded/legacy spec are never touched.
-        if (
-            record.frontmatter.status === 'active' &&
-            !record.sectionTitles.some((title) => title.trim().toLowerCase() === 'execution')
-        ) {
+        const hasExecutionSection = record.sectionTitles.some(
+            (title) => title.trim().toLowerCase() === 'execution'
+        );
+        if (record.frontmatter.status === 'active' && !hasExecutionSection) {
             activeSpecsWithoutExecution.push(specPath);
+        }
+        // Shipped-spec invariant, OTHER direction (FINDING-0116-checker-misses-nonactive-execution): a spec
+        // that HAS a `## Execution` change-cycle entry (the ADR-0110 AC→evidence digest of a change that
+        // shipped) but whose frontmatter status is NOT `active` is the inverse incoherence the
+        // `active-spec-no-execution` finding leaves unguarded — work shipped (Execution recorded) but the
+        // status was never flipped to the in-force `active` living-spec state (ADR-0108). This is the exact
+        // M4 case ADR-0116 was built for, and it previously slipped through. Reuses the SAME ADR-0110
+        // section parse (sectionTitles, fenced examples excluded) as the active-side check, so the two agree
+        // on what a real `## Execution` is. Advisory warning, reconcile-only — never blocks (ADR-0063/0077).
+        //
+        // EXEMPTION: `superseded` is exempt — a spec that records what it shipped before being replaced
+        // legitimately carries a historical `## Execution`; that is coherent, not a forgotten status flip
+        // (and `superseded` already has its own supersede-* advisories). So only draft/ready/done flag.
+        // (Gating on `status !== 'active' && status !== 'superseded'` keeps it low-FP: a parsed status is
+        // one of the known enum values, so an absent/unknown status is treated as non-active and still
+        // flags — a spec with shipped Execution but no in-force status is exactly the incoherence.)
+        if (
+            record.frontmatter.status !== 'active' &&
+            record.frontmatter.status !== 'superseded' &&
+            hasExecutionSection
+        ) {
+            nonactiveSpecsWithExecution.push(specPath);
         }
     }
 
@@ -440,6 +466,20 @@ export function check_workspace(input: CheckWorkspaceInput): Result<WorkspaceChe
             code: 'active-spec-no-execution',
             level: 'warning',
             message: `${path} is status: active but has no ## Execution section — a shipped living spec carries its AC→evidence digest (add a ## Execution change-cycle entry, ADR-0116/0110)`,
+        });
+    }
+
+    // Shipped-spec invariant, OTHER direction (FINDING-0116-checker-misses-nonactive-execution): a spec
+    // that HAS a `## Execution` section but is NOT status: active is shipped-but-not-marked-in-force — the
+    // inverse of active-spec-no-execution, the M4 case ADR-0116 was built for, previously unguarded.
+    // `superseded` is exempt (a superseded spec recording what it shipped before replacement is coherent);
+    // only draft/ready/done (or a missing/unknown status) with an Execution section flag. Advisory warning,
+    // reconcile-only — never blocks (ADR-0063/0077), pending measured 0-FP and promotion.
+    for (const path of nonactiveSpecsWithExecution) {
+        findings.push({
+            code: 'nonactive-spec-with-execution',
+            level: 'warning',
+            message: `${path} has a ## Execution section but is not status: active — shipped work whose status was never flipped to in-force (set status: active, or move the Execution out if it has not shipped; superseded specs are exempt, ADR-0116/0108)`,
         });
     }
 

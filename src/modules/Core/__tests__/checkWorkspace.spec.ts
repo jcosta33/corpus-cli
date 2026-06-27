@@ -591,4 +591,69 @@ preserves: [PG-001]
         expect(finding).toHaveLength(1);
         expect(finding[0].level).toBe('warning');
     });
+
+    // ADR-0116 (spec side, OTHER direction) — FINDING-0116-checker-misses-nonactive-execution: a spec that
+    // HAS a `## Execution` section but is NOT status: active is shipped-but-not-marked-in-force, the inverse
+    // of active-spec-no-execution. Advisory (warning), never blocking. `superseded` is exempt (a superseded
+    // spec recording what it shipped before replacement is coherent); only draft/ready/done flag.
+    const nonactiveExecutionFindings = (): { message: string; level: 'blocking' | 'warning' }[] =>
+        assertOk(check_workspace({ workspaceDir: ws })).workspaceFindings.filter(
+            (f) => f.code === 'nonactive-spec-with-execution'
+        );
+
+    it('FLAGS a ready spec WITH a ## Execution section as a warning, never blocking (FINDING-0116)', () => {
+        // status: ready (the CONFORMANT default) + a real ## Execution section = shipped but not in-force.
+        writeSpec('shipped', `${CONFORMANT}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n`);
+        withTemplates();
+        const finding = nonactiveExecutionFindings();
+        expect(finding).toHaveLength(1);
+        expect(finding[0].level).toBe('warning');
+        expect(finding[0].message).toContain('## Execution');
+        expect(finding[0].message).toContain('not status: active');
+        const report = assertOk(check_workspace({ workspaceDir: ws }));
+        expect(report.verdict).toBe('clean'); // advisory — it does not block the merge
+        expect(report.level).toBe('warning');
+    });
+
+    it('FLAGS a done spec WITH a ## Execution section as a warning (FINDING-0116)', () => {
+        writeSpec(
+            'shipped',
+            `${CONFORMANT.replace('status: ready', 'status: done')}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n`
+        );
+        withTemplates();
+        const finding = nonactiveExecutionFindings();
+        expect(finding).toHaveLength(1);
+        expect(finding[0].level).toBe('warning');
+    });
+
+    it('does NOT flag an active spec WITH a ## Execution section (the happy path — in-force + shipped)', () => {
+        writeSpec(
+            'shipped',
+            `${CONFORMANT.replace('status: ready', 'status: active')}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n`
+        );
+        withTemplates();
+        expect(nonactiveExecutionFindings()).toEqual([]);
+    });
+
+    it('does NOT flag a draft spec with NO ## Execution section (nothing shipped, nothing owed)', () => {
+        writeSpec('drafting', CONFORMANT.replace('status: ready', 'status: draft')); // draft, no Execution
+        writeSpec('ready', CONFORMANT); // status: ready, no Execution
+        withTemplates();
+        expect(nonactiveExecutionFindings()).toEqual([]);
+    });
+
+    it('does NOT flag a superseded spec WITH a ## Execution section (exempt — historical shipped record)', () => {
+        // A superseded spec recording what it shipped before being replaced is coherent, not a forgotten
+        // status flip; superseded is deliberately exempt (it carries its own supersede-* advisories).
+        writeSpec(
+            'old',
+            `${CONFORMANT.replace('id: SPEC-good', 'id: SPEC-old\nsuperseded_by: SPEC-new').replace(
+                'status: ready',
+                'status: superseded'
+            )}\n## Execution\n\n- **2026-06-26 — shipped** (corpus-cli \`abc1234\`).\n`
+        );
+        writeSpec('new', CONFORMANT.replace('id: SPEC-good', 'id: SPEC-new')); // the live replacement
+        withTemplates();
+        expect(nonactiveExecutionFindings()).toEqual([]);
+    });
 });
