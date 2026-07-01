@@ -9,7 +9,7 @@ import { type Result, ok, err, isErr } from '../../../infra/errors/result.ts';
 import { type AppError } from '../../../infra/errors/createAppError.ts';
 import { split_frontmatter } from '../services/frontmatter.ts';
 import { normalize_scalar } from '../../../infra/yamlScalar.ts';
-import { scan_markdown, visible_text } from '../../../infra/markdownScan.ts';
+import { scan_markdown, visible_text, strip_inline_code, type ScannedLine } from '../../../infra/markdownScan.ts';
 
 export type SpecRecordRequirement = Readonly<{
     id: string;
@@ -150,10 +150,16 @@ function parse_frontmatter(lines: readonly string[], end_line: number): SpecReco
     };
 }
 
-function extract_links(body_lines: readonly string[], body_start_line: number): SpecRecordLink[] {
+function extract_links(scanned: readonly ScannedLine[], body_start_line: number): SpecRecordLink[] {
     const links: SpecRecordLink[] = [];
-    for (let offset = 0; offset < body_lines.length; offset += 1) {
-        const line = body_lines[offset];
+    for (let offset = 0; offset < scanned.length; offset += 1) {
+        // A `](path)` or `[[KEY]]` inside a fenced example is verbatim text, not a live link — skip
+        // fenced lines and strip inline code spans so a quoted example never registers (C009/C015
+        // would otherwise fire on documentation of the syntax itself).
+        if (scanned[offset].inFence) {
+            continue;
+        }
+        const line = strip_inline_code(scanned[offset].text);
         const source_line = body_start_line + offset;
         for (const match of line.matchAll(MARKDOWN_LINK)) {
             links.push({ raw: match[1], line: source_line });
@@ -174,10 +180,14 @@ function citation_key(inner: string): string {
 // The deduped inline `[[KEY]]` citation keys, marked distinctly from the markdown `](path)` links
 // that share the `links` collection. Order-preserving (first occurrence wins) so a diagnostic citing
 // a key is stable. A `[[ ]]` with an empty key is skipped — it names no anchor.
-function extract_citations(body_lines: readonly string[]): string[] {
+function extract_citations(scanned: readonly ScannedLine[]): string[] {
     const keys: string[] = [];
     const seen = new Set<string>();
-    for (const line of body_lines) {
+    for (const scannedLine of scanned) {
+        if (scannedLine.inFence) {
+            continue;
+        }
+        const line = strip_inline_code(scannedLine.text);
         for (const match of line.matchAll(WIKI_LINK)) {
             const key = citation_key(match[1]);
             if (key.length === 0 || seen.has(key)) {
@@ -292,7 +302,7 @@ export function parse_spec_record(input: ParseSpecRecordInput): ParseSpecRecordR
         nonGoalsBody,
         openQuestionsPresent,
         bodyText: visible_text(scanned),
-        links: extract_links(body_lines, body_start_line),
-        citations: extract_citations(body_lines),
+        links: extract_links(scanned, body_start_line),
+        citations: extract_citations(scanned),
     });
 }

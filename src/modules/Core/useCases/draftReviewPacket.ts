@@ -159,6 +159,9 @@ function cell(value: string): string {
 function render_draft(args: {
     slug: string;
     title: string;
+    /** The keying frontmatter line: `task: TASK-<slug>` for a split slice, `spec: <id>` for the
+     *  task-less 1:1 case (ADR-0103 — the review template uses `spec:` INSTEAD of `task:` there). */
+    sourceRef: string;
     inScopeIds: readonly string[];
     changedFiles: readonly string[];
     evidence: ReadonlyMap<string, string>;
@@ -184,7 +187,7 @@ function render_draft(args: {
     return `---
 type: review
 id: REVIEW-${args.slug}
-task: TASK-${args.slug}
+${args.sourceRef}
 pr: none yet
 reviewer: {{who reviews — never the implementing session}}
 status: ${DRAFT_STATUS}
@@ -252,9 +255,16 @@ export function draft_review_packet(input: DraftReviewPacketInput): Result<Draft
     const rawTitle = frontmatter.title;
     const title = typeof rawTitle === 'string' && rawTitle.length > 0 ? rawTitle : input.task;
 
+    // The packet keys on its source: `task:` for a split slice, `spec:` for the task-less 1:1 case
+    // (ADR-0103) — the review template uses `spec:` INSTEAD of `task:` there.
+    const rawSpecId = frontmatter.id;
+    const specId = typeof rawSpecId === 'string' && rawSpecId.length > 0 ? rawSpecId : `SPEC-${input.slug}`;
+    const sourceRef = input.taskPacketSource !== null ? `task: TASK-${input.slug}` : `spec: ${specId}`;
+
     const markdown = render_draft({
         slug: input.slug,
         title,
+        sourceRef,
         inScopeIds,
         changedFiles: report.diffChangedFiles,
         evidence: evidence_by_id(input),

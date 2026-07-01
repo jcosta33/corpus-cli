@@ -109,6 +109,37 @@ Verify with: a test.
         expect(record.citations).toEqual(['GOOGLESA', 'MAST']);
     });
 
+    it('a [[KEY]] or ](path) inside a fence or inline code is example text, never a live citation/link', () => {
+        const source = `---
+type: spec
+id: SPEC-fenced
+status: ready
+sources:
+  - a.md
+---
+
+## Requirements
+
+### AC-001 — documents the syntax
+The doc shows the citation form in an example:
+\`\`\`
+Cite like [[FENCED-KEY]] and link like [text](fenced/path.md).
+\`\`\`
+And inline: \`[[INLINE-KEY]]\` is the shape. A real one: [[REAL-KEY]].
+Verify with: a test.
+
+## Non-goals
+
+- none
+`;
+        const record = assertOk(parse_spec_record({ source, path: 'spec.md' }));
+        expect(record.citations).toEqual(['REAL-KEY']);
+        const raws = record.links.map((l) => l.raw);
+        expect(raws).not.toContain('fenced/path.md');
+        expect(raws).not.toContain('FENCED-KEY');
+        expect(raws).not.toContain('INLINE-KEY');
+    });
+
     it('parses inline-array sources', () => {
         const source = `---\ntype: spec\nid: X\nsources: [a.md, b.md]\n---\n\n## Non-goals\n`;
         const record = assertOk(parse_spec_record({ source, path: 'x.md' }));

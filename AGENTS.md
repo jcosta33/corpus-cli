@@ -23,7 +23,9 @@
   checks contract this CLI implements (C001–C017) lives in the suspec repo,
   `checks/checks.yaml` (that file's `version:` is the contract version of record —
   don't pin a copy of it here), reimplemented in code at
-  `src/modules/Core/services/checksContract.ts` and drift-guarded against it.
+  `src/modules/Core/services/checksContract.ts` and drift-guarded against it whenever a sibling
+  canon checkout is present (SUSPEC_CANON / `../suspec` / any canon-shaped sibling — the guard
+  skips loudly otherwise; no CI runs it yet).
 
 ## Project facts
 
@@ -31,7 +33,7 @@
   `src/index.ts` (the in-process dispatcher). Modules: `Core` (the four engines and the
   `unixOutcome` contract), `Sol` (the plain-form spec parser), `Workspace` (git worktrees),
   `Terminal` (arg parsing), `Commands` (the thin wrappers), `Tui` (the interactive flows and
-  renderers). `src/infra` is the `Result`/`AppError` algebra.
+  renderers). `src/infra` is the `Result`/`AppError` algebra plus the shared pure markdown/YAML scan utilities.
 - **Architecture discipline:** DDD module boundaries — cross-module imports only via a
   module's root `useCases/index.ts`; internals (`models/`/`repositories/`/`services/`) private;
   one function per use-case/repository file; `src/infra/**` MUST NOT import
@@ -61,7 +63,7 @@
 | cmdLint      | `pnpm lint`          | static checks                  |
 | cmdTypecheck | `pnpm typecheck`     | types                          |
 | cmdValidate  | `pnpm deps:validate` | dependency-boundary validation |
-| cmdFormat    | `pnpm format`        | format hygiene                 |
+| cmdFormat    | `pnpm format:check`  | format hygiene (check-only — `pnpm format` writes) |
 
 An empty or missing slot means **ask** — never invent a command. A Verify item
 whose command cannot be resolved reads Unverified, not Pass.

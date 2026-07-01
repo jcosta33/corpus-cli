@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createAppError } from '../createAppError';
-import { isAppError } from '../isAppError';
+import { createAppError } from '../createAppError.ts';
+import { isAppError } from '../isAppError.ts';
 
 describe('isAppError', () => {
     it('returns true for AppError-shaped objects and createAppError results', () => {

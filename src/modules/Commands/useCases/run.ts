@@ -92,14 +92,23 @@ export function run(argv: string[], cwd: string = process.cwd()): number {
             exit,
         },
     };
-    const written = write_run_record(repoRoot, record);
+    let written: { path: string } | null;
+    try {
+        written = write_run_record(repoRoot, record);
+    } catch (caught: unknown) {
+        // The agent already ran — a failed record write (EACCES, read-only fs) must degrade to a
+        // visible warning, never an uncaught stack that hides the run's outcome.
+        const detail = caught instanceof Error ? caught.message : String(caught);
+        process.stderr.write(`suspec run: could not write the run record: ${detail}\n`);
+        written = null;
+    }
 
     // AC-007: report the launch facts (adapter, worktree, exit) + the next step. No verdict/result.
     const level = exit === 0 ? ('clean' as const) : ('warning' as const);
     return project({
         result: {
             ok: true,
-            value: { level, adapter: adapter.name, worktree: worktreePath, exit, record: written.path },
+            value: { level, adapter: adapter.name, worktree: worktreePath, exit, record: written === null ? null : written.path },
         },
         json,
         render: (value) =>

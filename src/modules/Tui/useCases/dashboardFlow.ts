@@ -7,6 +7,7 @@ import { run_check_flow } from './checkFlow.ts';
 import { run_status_flow } from './statusFlow.ts';
 import { run_worktree_flow } from './worktreeFlow.ts';
 import { run_new_flow } from './newFlow.ts';
+import { run_review_flow } from './reviewFlow.ts';
 
 export type DashboardFlowDeps = Readonly<{ cwd: string }>;
 
@@ -17,6 +18,7 @@ export async function run_dashboard_flow(prompter: Prompter, deps: DashboardFlow
         options: [
             { value: 'status', label: 'Status', hint: 'the workspace board' },
             { value: 'check', label: 'Check', hint: 'lint specs against the contract' },
+            { value: 'review', label: 'Review', hint: 'reconcile a task against its diff' },
             { value: 'worktree', label: 'Worktree', hint: 'isolated task worktrees' },
             { value: 'new', label: 'New', hint: 'cut a task / scaffold a spec' },
             { value: 'quit', label: 'Quit' },
@@ -28,6 +30,9 @@ export async function run_dashboard_flow(prompter: Prompter, deps: DashboardFlow
     }
     if (choice === 'check') {
         return run_check_flow(prompter, { workspaceDir: deps.cwd });
+    }
+    if (choice === 'review') {
+        return run_review_flow(prompter, { workspaceDir: deps.cwd });
     }
     if (choice === 'status') {
         return run_status_flow(prompter, { workspaceDir: deps.cwd });

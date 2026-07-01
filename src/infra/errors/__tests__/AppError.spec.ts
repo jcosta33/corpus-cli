@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import { createAppError } from '../createAppError';
-import { isAppError } from '../isAppError';
+import { createAppError } from '../createAppError.ts';
+import { isAppError } from '../isAppError.ts';
 
 describe('AppError', () => {
     describe('createAppError', () => {

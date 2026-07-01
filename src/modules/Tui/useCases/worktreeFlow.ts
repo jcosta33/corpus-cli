@@ -2,7 +2,7 @@
 // a spinner. Pure orchestration over the injected Prompter + the Core engine + Workspace.git, so it
 // is testable with a mock Prompter against a real throwaway git repo.
 
-import { create_worktree, list_suspec_worktrees, remove_worktree, prune_worktrees } from '../../Core/useCases/index.ts';
+import { create_worktree, list_suspec_worktrees, remove_worktree, prune_worktrees, is_safe_segment } from '../../Core/useCases/index.ts';
 import { resolve_repo_root, current_branch } from '../../Workspace/useCases/index.ts';
 import { isErr } from '../../../infra/errors/result.ts';
 import { type Prompter, is_cancelled } from './prompter.ts';
@@ -25,6 +25,14 @@ async function create(prompter: Prompter, repoRoot: string): Promise<number> {
     if (is_cancelled(slug)) {
         prompter.outro('Cancelled.');
         return 1;
+    }
+    // Same guard as the direct command (`suspec worktree create`): the slug becomes a
+    // `.worktrees/<slug>` directory name, so it must be a single safe segment — never rely on git
+    // refname rejection alone to stop `../…` or nested paths.
+    if (!is_safe_segment(slug)) {
+        prompter.error(`invalid slug: "${slug}" — expected a single path-safe segment (no "/", "..", or leading "-")`);
+        prompter.outro('✗ could not create');
+        return 2;
     }
     const spin = prompter.spinner();
     spin.start('Creating worktree…');

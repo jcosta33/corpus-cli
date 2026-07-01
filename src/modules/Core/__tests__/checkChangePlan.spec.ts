@@ -6,6 +6,7 @@ import { assertOk } from '../../../infra/errors/testing/assertOk.ts';
 import { check_change_plan } from '../useCases/checkChangePlan.ts';
 import { build_spec_ref_resolver } from '../useCases/resolveSpecRef.ts';
 import { find_sibling_spec_files } from '../useCases/findSpecFiles.ts';
+import { resolve_canon_root } from '../testing/resolveCanonRoot.ts';
 
 const codes = (diagnostics: readonly { code: string }[]) => diagnostics.map((d) => d.code);
 
@@ -117,24 +118,26 @@ describe('check_change_plan — C010/C011 (AC-001/002/003)', () => {
 });
 
 // AC-004: the frozen transformation fixture is the oracle — C010 pass, C011 pass (EXPECTED.md).
-// Reached the same way the contract drift-guard reaches the sibling suspec repo (../suspec from cwd).
-// CONDITIONAL on the sibling `../suspec` checkout: in a hermetic suspec-cli-only checkout the fixture
-// isn't on disk, so this oracle CANNOT run and no-ops (SKIPPED below, never silently green). CI MUST
-// check out the sibling `../suspec` for it to bite — we deliberately do NOT vendor a fixture copy here
-// (it would become a second source of truth that could drift from the canon it pins). The skip is
-// named + warned so an absent sibling is a visible signal in the run, not a silent pass.
+// Reached the same way the contract drift-guard reaches the sibling suspec canon (resolve_canon_root:
+// SUSPEC_CANON, `../suspec`, or any canon-shaped sibling — folder name irrelevant; some checkouts name
+// it `corpus`). CONDITIONAL on that checkout: in a hermetic suspec-cli-only checkout the fixture isn't
+// on disk, so this oracle CANNOT run and no-ops (SKIPPED below, never silently green). We deliberately
+// do NOT vendor a fixture copy here (it would become a second source of truth that could drift from
+// the canon it pins). The skip is named + warned so an absent sibling is a visible signal in the run,
+// not a silent pass.
 describe('check_change_plan reproduces the transformation fixture (AC-004)', () => {
-    const fixtureDir = resolve(process.cwd(), '../suspec/checks/fixtures/transformation');
-    const planPath = resolve(fixtureDir, 'change-plan.md');
-    const present = existsSync(planPath);
+    const canonRoot = resolve_canon_root(process.cwd());
+    const fixtureDir = canonRoot === null ? '' : resolve(canonRoot, 'checks/fixtures/transformation');
+    const planPath = fixtureDir === '' ? '' : resolve(fixtureDir, 'change-plan.md');
+    const present = planPath !== '' && existsSync(planPath);
     if (!present) {
         console.warn(
-            `[no-op] transformation-fixture oracle SKIPPED: sibling fixture ${planPath} absent — CI must check out ../suspec for AC-004 to bite`
+            `[no-op] transformation-fixture oracle SKIPPED: no sibling suspec canon found (SUSPEC_CANON / ../suspec / canon-shaped sibling) — provide one for AC-004 to bite`
         );
     }
     const fixtureName = present
         ? 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md)'
-        : 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md) (SKIPPED: sibling ../suspec absent)';
+        : 'the fixture change-plan reports zero C010 and zero C011 (matches EXPECTED.md) (SKIPPED: no sibling suspec canon)';
 
     (present ? it : it.skip)(fixtureName, () => {
         const resolver = build_spec_ref_resolver(find_sibling_spec_files(planPath));

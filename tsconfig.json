@@ -44,7 +44,7 @@
 
         // ── Path aliases ────────────────────────────────────────────────────
         // Only used by the new src/infra/* package. Module code uses relative
-        // imports (../../Module/index.ts) per AGENTS.md. With TypeScript 6+
+        // imports (../../Module/useCases/index.ts) per AGENTS.md. With TypeScript 6+
         // `paths` resolves relative to this config — no `baseUrl` needed.
         "paths": {
             "#/*": ["./src/*"]
@@ -56,8 +56,6 @@
         "build",
         "coverage",
         "node_modules",
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
         "**/*.test.ts",
         "**/*.test.tsx"
     ]

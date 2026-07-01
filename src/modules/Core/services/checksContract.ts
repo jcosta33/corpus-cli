@@ -2,8 +2,9 @@
 // checks.yaml sanctions implementing the reference directly ("Read the rules from checks.yaml, or
 // implement the checks reference directly — they must agree over the core checks"). We pin the
 // contract version and the C-code table here; a drift-guard test asserts they match the sibling
-// suspec repo when it is present, so suspec-cli stays hermetic (no runtime dependency on suspec/) while
-// catching divergence.
+// suspec canon checkout when one is present (SUSPEC_CANON / ../suspec / any canon-shaped sibling —
+// local folders are often named corpus), so suspec-cli stays hermetic (no runtime dependency on the
+// canon) while catching divergence.
 //
 // These rule functions are PURE over a ParsedSpec record — the parser (Sol) extracts the structure;
 // this module owns the contract semantics (strength words, the Verify-line shape, link

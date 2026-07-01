@@ -30,7 +30,7 @@ afterEach(() => {
 describe('emit_agents (suspec agents emit --codex, ADR-0098)', () => {
     it('emits one .codex/agents/<name>.toml per agent def, ignoring README + non-defs', () => {
         const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
-        expect(report.written.sort()).toEqual(['suspec-auditor.toml', 'suspec-reviewer.toml']);
+        expect([...report.written].sort()).toEqual(['suspec-auditor.toml', 'suspec-reviewer.toml']);
         expect(report.level).toBe('clean');
         const toml = readFileSync(join(target, '.codex', 'agents', 'suspec-reviewer.toml'), 'utf8');
         expect(toml).toContain('developer_instructions = """');
@@ -67,6 +67,16 @@ describe('emit_agents (suspec agents emit --codex, ADR-0098)', () => {
         } finally {
             rmSync(empty, { recursive: true, force: true });
         }
+    });
+
+    it('an unsafe frontmatter name (path traversal) is skipped, never written outside .codex/agents/', () => {
+        writeFileSync(join(src, 'evil.md'), agentDef('../../escaped', 'Read'));
+        const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
+        // nothing escaped the target root, and the skip is visible in the report
+        expect(existsSync(join(target, 'escaped.toml'))).toBe(false);
+        expect(existsSync(join(target, '..', 'escaped.toml'))).toBe(false);
+        expect(report.skipped.some((s) => s.includes('unsafe agent name'))).toBe(true);
+        expect([...report.written].sort()).toEqual(['suspec-auditor.toml', 'suspec-reviewer.toml']);
     });
 
     it('a normal agent definition emits to an installable toml', () => {

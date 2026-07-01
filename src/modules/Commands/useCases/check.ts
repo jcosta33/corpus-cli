@@ -57,7 +57,7 @@ export async function run(argv: string[], cwd: string = process.cwd()): Promise<
         const rootResult = resolve_repo_root(cwd);
         if (isErr(rootResult)) {
             return project({
-                result: ok({ level: 'clean' as const, stale: [], scanned: 0 }),
+                result: ok({ level: 'clean' as const, stale: [], scanned: 0, skipped: 'no-git-repository' as const }),
                 json,
                 render: () => 'spec-staleness — skipped: no git repository found (staleness detection needs one)',
             });

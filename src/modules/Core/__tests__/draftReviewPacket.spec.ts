@@ -121,6 +121,14 @@ describe('draft_review_packet — populates from the reconcile (AC-001)', () => 
         const draft = assertOk(draft_review_packet(input({ specSource: specSource({ title: 'The widget' }) })));
         expect(draft.markdown).toContain('# Review: The widget');
     });
+
+    it('the task-less 1:1 case keys on spec:, never task: (ADR-0103 — the template uses spec: INSTEAD)', () => {
+        const draft = assertOk(draft_review_packet(input({ taskPacketSource: null })));
+        expect(draft.markdown).toContain('spec: SPEC-feat');
+        expect(draft.markdown).not.toContain('task: TASK-feat');
+        // scope falls back to the spec's full AC list
+        expect(parse_review_packet(draft.markdown).coverageRows.map((r) => r.id)).toEqual(['AC-001', 'AC-002']);
+    });
 });
 
 describe('draft_review_packet — the no-Pass / Unverified floor (AC-002)', () => {

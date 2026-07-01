@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { createAppError } from '../createAppError';
+import { createAppError } from '../createAppError.ts';
 
 describe('AppError', () => {
     it('createAppError() creates the expected flattened shape', () => {

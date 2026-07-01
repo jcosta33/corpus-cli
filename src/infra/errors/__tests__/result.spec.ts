@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { ok, err, isOk, isErr, map, mapError, flatMap, match, unwrapOr, fromNullable, tryCatch } from '../result';
+import { ok, err, isOk, isErr, map, mapError, flatMap, match, unwrapOr, fromNullable, tryCatch } from '../result.ts';
 
 describe('Result', () => {
     describe('ok and err', () => {
@@ -29,7 +29,7 @@ describe('Result', () => {
 
     describe('map', () => {
         it('transforms the value if Ok', () => {
-            const result = map(ok(2), (x) => x * 2);
+            const result = map(ok(2), (x: number) => x * 2);
             expect(result).toEqual(ok(4));
         });
 
@@ -41,7 +41,7 @@ describe('Result', () => {
 
     describe('mapError', () => {
         it('transforms the error if Err', () => {
-            const result = mapError(err('Error'), (e) => `${e}!`);
+            const result = mapError(err('Error'), (e: string) => `${e}!`);
             expect(result).toEqual(err('Error!'));
         });
 
@@ -53,7 +53,7 @@ describe('Result', () => {
 
     describe('flatMap', () => {
         it('chains Ok results', () => {
-            const result = flatMap(ok(2), (x) => ok(x * 2));
+            const result = flatMap(ok(2), (x: number) => ok(x * 2));
             expect(result).toEqual(ok(4));
         });
 
@@ -71,7 +71,7 @@ describe('Result', () => {
     describe('match', () => {
         it('executes ok branch for Ok', () => {
             const result = match(ok(42), {
-                ok: (v) => v.toString(),
+                ok: (v: number) => v.toString(),
                 err: (e: string) => e,
             });
             expect(result).toBe('42');
@@ -80,7 +80,7 @@ describe('Result', () => {
         it('executes err branch for Err', () => {
             const result = match(err('Error!'), {
                 ok: (v: number) => v.toString(),
-                err: (e) => e,
+                err: (e: string) => e,
             });
             expect(result).toBe('Error!');
         });
@@ -114,7 +114,7 @@ describe('Result', () => {
         it('returns Ok if function succeeds', () => {
             const result = tryCatch(
                 () => 42,
-                (e) => String(e)
+                (e: unknown) => String(e)
             );
             expect(result).toEqual(ok(42));
         });
@@ -124,7 +124,7 @@ describe('Result', () => {
                 () => {
                     throw new Error('Boom');
                 },
-                (e) => (e instanceof Error ? e.message : 'Unknown')
+                (e: unknown) => (e instanceof Error ? e.message : 'Unknown')
             );
             expect(result).toEqual(err('Boom'));
         });

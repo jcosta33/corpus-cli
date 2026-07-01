@@ -30,7 +30,10 @@ describe('exit_code_for', () => {
 
 describe('project', () => {
     const value = (level: OutcomeLevel) => ({ level, verdict: level, count: 3 });
-    const render = (v: { verdict: string; count: number }) => `${v.verdict}: ${v.count}`;
+    const render = (v: { readonly level: OutcomeLevel }) => {
+        const val = v as unknown as { verdict: string; count: number };
+        return `${val.verdict}: ${val.count}`;
+    };
 
     it('writes the rendered result to stdout and returns 0 on a clean success', () => {
         const c = capture();

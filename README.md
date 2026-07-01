@@ -7,8 +7,7 @@ specs and reviews live in the private family workspace
 that governs this code repo.
 
 suspec-cli **prepares, checks, and reconciles** the work around the Suspec loop — it never runs the
-model loop itself. Every command is a **direct, scriptable command**; most also have a **beautiful
-interactive TUI** flow (`-i`).
+model loop itself. Every command is a **direct, scriptable command**; most also have an **interactive TUI** flow (`-i`).
 
 ## Requirements
 

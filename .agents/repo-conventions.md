@@ -7,8 +7,9 @@ another project; none of that applies (this repo is a TypeScript CLI, no UI, no 
 
 ## Module architecture (DDD boundaries)
 
-- **Cross-module imports target a module's root `index.ts` only.** Deep imports into another module's
-  `useCases/`, `events/`, `services/`, `models/`, `repositories/` are forbidden.
+- **Cross-module imports target a module's `useCases/index.ts` barrel only** (no module ships a root
+  `index.ts`). Deep imports into another module's internals — files inside `useCases/`, `events/`,
+  `services/`, `models/`, `repositories/` — are forbidden.
 - **Within a module, use relative paths** (`../services/…`, `./useCases/…`) — never import your own
   module's root barrel. The barrel is the _external_ surface, not an intra-module indirection.
 - **`index.ts` re-exports only what another module may consume** — runtime values from `useCases/` and
@@ -22,7 +23,8 @@ another project; none of that applies (this repo is a TypeScript CLI, no UI, no 
   a model change in A from cascading into B, and makes a contract change break at compile time.
 - **One function per `useCase`/`repository` file.** Repositories own I/O; use cases orchestrate them.
 - **`src/infra` MUST NOT import `src/modules`** (`infra-isolation`). Infra is leaf-level by
-  construction — after the M1 realignment it is just the `Result<V, E>` / `AppError` algebra.
+  construction — after the M1 realignment it carries the `Result<V, E>` / `AppError` algebra plus the
+  shared pure markdown/YAML scan utilities (`markdownScan.ts`, `yamlScalar.ts`).
 - **The gate:** `pnpm deps:validate` (dependency-cruiser, `.dependency-cruiser.cjs`) MUST pass with
   **zero** architectural violations before a cross-module change is done. Run it after every ~10 files in
   a refactor — it is the `cmdValidate` proof adapter.

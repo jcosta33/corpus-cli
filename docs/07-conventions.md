@@ -141,10 +141,10 @@ import * as path from 'node:path';
 // ✅ Good
 import { execSync } from 'node:child_process';
 import { select } from '@clack/prompts';
-import { getWorkspace } from '../../modules/Workspace/index.ts';
+import { getWorkspace } from '../../modules/Workspace/useCases/index.ts';
 
 // ❌ Bad: Mixed order and missing type-only imports
-import { getWorkspace } from '../../modules/Workspace/index.ts';
+import { getWorkspace } from '../../modules/Workspace/useCases/index.ts';
 import { execSync } from 'node:child_process';
 ```
 

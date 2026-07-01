@@ -104,7 +104,10 @@ export async function dispatch(argv: string[], cwd: string = process.cwd()): Pro
     }
 
     const rest = argv.slice(1);
-    if (rest.includes('--help') || rest.includes('-h')) {
+    // Respect the `--` end-of-options marker parse_flags honors: a dash-leading positional after `--`
+    // must not be read as a help request.
+    const optionZone = rest.includes('--') ? rest.slice(0, rest.indexOf('--')) : rest;
+    if (optionZone.includes('--help') || optionZone.includes('-h')) {
         print_command_help(command);
         return 0;
     }

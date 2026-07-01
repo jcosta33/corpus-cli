@@ -24,7 +24,7 @@ export function print_help(): void {
         '',
         color.bold('Global flags'),
         `  --json                   machine-readable output (never prompts)`,
-        `  --no-workspace           run without a Suspec workspace where possible`,
+        `  --no-workspace           (check only) lint a single file without a workspace`,
         `  --version · -v           print the version`,
         '',
         color.dim('Exit codes: 0 clean · 1 warnings · 2 error.'),

@@ -19,7 +19,7 @@ function reviewReport(over: Partial<RenderReviewReport> = {}): RenderReviewRepor
         coverage: [],
         verifyBinding: [],
         scopeDivergence: [],
-        selfReport: { claimedNotInDiff: [], inDiffNotClaimed: [], outsideScope: [] },
+        selfReport: { claimedNotInDiff: [], inDiffNotClaimed: [], outsideScope: [], runSummaryUnparsed: false },
         doNotChangeTouched: [],
         emptyEvidencePassRows: [],
         packetStructural: { badResultCells: [], badStatus: null, statusPassContradicted: false, missingSections: [] },
@@ -209,7 +209,7 @@ describe('format_review_report (AC-023: facts + route, never a verdict)', () => 
                     { id: 'AC-004', kind: 'free-form-only', message: 'AC-004 free-form only' },
                 ],
                 scopeDivergence: ['AC-009'],
-                selfReport: { claimedNotInDiff: ['a.ts'], inDiffNotClaimed: ['b.ts'], outsideScope: ['vendor/x.ts'] },
+                selfReport: { claimedNotInDiff: ['a.ts'], inDiffNotClaimed: ['b.ts'], outsideScope: ['vendor/x.ts'], runSummaryUnparsed: false },
                 doNotChangeTouched: ['src/auth/token-family.ts'],
                 emptyEvidencePassRows: ['AC-001'],
                 packetStructural: {

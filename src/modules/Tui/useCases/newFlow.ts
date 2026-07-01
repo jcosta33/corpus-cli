@@ -95,6 +95,13 @@ async function new_task(prompter: Prompter, workspaceDir: string): Promise<numbe
         return 2;
     }
     prompter.success(`Cut ${result.value.taskId} (${String(scope.length)} scoped)`);
+    if (scope.length === 0) {
+        // Parity with the direct command (R4-ISS-09): an empty scope cuts an UNBOUNDED task — say so
+        // loudly, not as a skimmable "(0 scoped)".
+        prompter.warn(
+            "no scope selected — this task's scope is EMPTY (unbounded). Fill the Scope section with requirement ids before working."
+        );
+    }
     prompter.outro(result.value.path);
     return 0;
 }

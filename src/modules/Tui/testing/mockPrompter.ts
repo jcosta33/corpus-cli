@@ -18,9 +18,9 @@ export type MockCalls = {
 
 export type MockScript = Readonly<{
     select?: unknown[];
-    multiselect?: unknown[][];
-    confirm?: boolean[];
-    text?: string[];
+    multiselect?: (unknown[] | Cancelled)[];
+    confirm?: (boolean | Cancelled)[];
+    text?: (string | Cancelled)[];
 }>;
 
 export type MockPrompter = Prompter & { readonly calls: MockCalls };
@@ -65,8 +65,8 @@ export function create_mock_prompter(script: MockScript = {}): MockPrompter {
                 take<string[] | Cancelled>(multiselects as (string[] | Cancelled)[], 'multiselect')
             ),
         confirm: () =>
-            Promise.resolve().then(() => take<boolean | Cancelled>(confirms as (boolean | Cancelled)[], 'confirm')),
-        text: () => Promise.resolve().then(() => take<string | Cancelled>(texts as (string | Cancelled)[], 'text')),
+            Promise.resolve().then(() => take<boolean | Cancelled>(confirms, 'confirm')),
+        text: () => Promise.resolve().then(() => take<string | Cancelled>(texts, 'text')),
         spinner: () => ({
             start: (message) => calls.spinnerMessages.push(message),
             message: (message) => calls.spinnerMessages.push(message),

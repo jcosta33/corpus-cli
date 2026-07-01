@@ -5,7 +5,7 @@
 import { readdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import { check_spec, check_workspace, exit_code_for, build_source_exists } from '../../Core/useCases/index.ts';
+import { check_spec, check_workspace, exit_code_for, build_source_exists, build_anchor_resolver } from '../../Core/useCases/index.ts';
 import { isOk } from '../../../infra/errors/result.ts';
 import { type Prompter, is_cancelled } from './prompter.ts';
 import { format_check_report, format_workspace_report } from '../services/render.ts';
@@ -42,8 +42,12 @@ async function check_one(prompter: Prompter, workspaceDir: string): Promise<numb
     spin.start('Running C001–C009…');
     // C009 resolves a source ref relative to the spec dir OR the workspace root (so a root-level
     // `intake/x.md` sourced from `specs/<feature>/spec.md` resolves, not only a co-located ref).
+    // C015 needs the anchor resolver too — the direct `suspec check <file>` builds it, so the
+    // interactive path must not silently pass a dangling [[KEY]] the direct path would warn on.
     const exists = build_source_exists(file, workspaceDir);
-    const result = check_spec({ source: readFileSync(file, 'utf8'), path: file, exists });
+    const source = readFileSync(file, 'utf8');
+    const anchor_resolves = build_anchor_resolver(source, file);
+    const result = check_spec({ source, path: file, exists, anchor_resolves });
     spin.stop('Checked.');
     if (!isOk(result)) {
         prompter.error(result.error.message);

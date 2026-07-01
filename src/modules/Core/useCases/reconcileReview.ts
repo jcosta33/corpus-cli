@@ -50,7 +50,7 @@ export type ReconcileReviewInput = Readonly<{
     reviewPacketSource: string | null;
     // The worktree's net change against its base branch (committed + uncommitted), name-only.
     diffChangedFiles: readonly string[];
-    // Per-file LOC of the committed diff (C018 oversized-packet). Optional: the size nudge is advisory,
+    // Per-file LOC of the committed diff (the oversized-packet ADVISORY — deliberately not a C-code; the contract stops at C017). Optional: the size nudge is advisory,
     // so a fixture reconcile (no git) or a numstat hiccup simply omits it — no size finding then.
     changedFileStats?: readonly ChangedFileStat[];
     // Context the COMMAND surfaces; the reconcile engine ignores both. `base` is the diff base used, and
@@ -259,7 +259,7 @@ export function reconcile_review(input: ReconcileReviewInput): Result<ReviewRepo
     const packetStructural = reviewPacket !== null ? packet_structural_facts(reviewPacket) : EMPTY_PACKET_FACTS;
     const emptyEvidencePassRows = reviewPacket !== null ? empty_evidence_pass_rows(reviewPacket.coverageRows) : [];
 
-    // C018 oversized-packet (ADR-0094/0097): the size nudge off the committed diff stats. Computed only
+    // The oversized-packet ADVISORY (ADR-0094/0097 — deliberately not a C-code): the size nudge off the committed diff stats. Computed only
     // when the command supplied stats (a fixture reconcile omits them → no size signal); the generated-
     // file exclusion + the band live in the contract (packet_size_facts).
     const packetSize = input.changedFileStats !== undefined ? packet_size_facts(input.changedFileStats) : null;

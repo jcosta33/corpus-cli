@@ -95,9 +95,16 @@ export function format_board(board: {
     for (const spec of board.specs) {
         lines.push(`${color.bold(spec.id)}  ${color.dim(spec.status)}`);
         for (const task of spec.tasks) {
-            const review = task.hasReview
-                ? color.green(`review: ${task.reviewStatus ?? ''}`)
-                : color.yellow('no review');
+            // Green means a HUMAN result, not "a packet exists": pass/waived render green;
+            // draft/needs-human stay yellow (the same task appears under "Needs a human"); blocked is red.
+            const reviewStatus = task.reviewStatus ?? '';
+            let paint = color.yellow;
+            if (reviewStatus === 'pass' || reviewStatus === 'waived') {
+                paint = color.green;
+            } else if (reviewStatus === 'blocked') {
+                paint = color.red;
+            }
+            const review = task.hasReview ? paint(`review: ${reviewStatus}`) : color.yellow('no review');
             lines.push(`  • ${task.id}  ${color.dim(task.status)}  ${review}`);
         }
     }

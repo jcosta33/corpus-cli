@@ -13,7 +13,7 @@ afterEach(() => {
     rmSync(ws, { recursive: true, force: true });
 });
 
-async function capture(fn: () => Promise<number>): Promise<{ out: string; code: number }> {
+async function capture(fn: () => number | Promise<number>): Promise<{ out: string; code: number }> {
     const out: string[] = [];
     const o = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
         out.push(String(chunk));

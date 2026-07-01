@@ -57,6 +57,13 @@ export function emit_agents(input: EmitAgentsInput): Result<EmitAgentsReport, Ap
             if (def === null) {
                 continue; // not an agent definition (no frontmatter / no name) — skip quietly
             }
+            // The frontmatter name becomes a filename — refuse separators / traversal so a hostile
+            // `name: ../../x` cannot write outside .codex/agents/. (Workspace is a leaf module, so this
+            // mirrors Core's is_safe_segment rather than importing it.)
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(def.name) || def.name.includes('..')) {
+                skipped.push(`${file} (unsafe agent name ${JSON.stringify(def.name)} — not emitted)`);
+                continue;
+            }
             const outPath = join(targetRoot, `${def.name}.toml`);
             // write_new_file errs only on a no-clobber collision (an existing file, no --force) → skip it;
             // a real write failure (EACCES) throws and is caught below.

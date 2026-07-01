@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { resolve_canon_root } from '../testing/resolveCanonRoot.ts';
+
 import {
     CONTRACT_VERSION,
     CORE_CHECKS,
@@ -758,22 +760,24 @@ describe('run_spec_checks + verdict_for', () => {
 });
 
 describe('drift guard against the sibling suspec/checks/checks.yaml', () => {
-    // PG-005's drift-guard teeth are conditional on the sibling `../suspec` checkout being present: in a
+    // PG-005's drift-guard teeth are conditional on a sibling suspec canon checkout being present: in a
     // hermetic suspec-cli-only checkout the contract source isn't on disk, so the guard CANNOT run and
-    // no-ops (SKIPPED below, never silently green). CI MUST check out the sibling `../suspec` for the
-    // guard to bite — we deliberately do NOT vendor a checks.yaml copy here (a second source of truth
-    // would itself drift from the canon it is meant to pin). The skip is named + warned so an absent
-    // sibling is a visible signal in the run, not a silent pass.
-    const contractPath = resolve(process.cwd(), '../suspec/checks/checks.yaml');
-    const present = existsSync(contractPath);
+    // no-ops (SKIPPED below, never silently green). The canon resolves via SUSPEC_CANON, `../suspec`,
+    // or any canon-shaped sibling (checks/checks.yaml + docs/adrs — the folder name is irrelevant;
+    // some checkouts name it `corpus`). We deliberately do NOT vendor a checks.yaml copy here (a second
+    // source of truth would itself drift from the canon it is meant to pin). The skip is named + warned
+    // so an absent sibling is a visible signal in the run, not a silent pass.
+    const canonRoot = resolve_canon_root(process.cwd());
+    const contractPath = canonRoot === null ? '' : resolve(canonRoot, 'checks/checks.yaml');
+    const present = contractPath !== '' && existsSync(contractPath);
     if (!present) {
         console.warn(
-            `[no-op] drift guard SKIPPED: sibling contract ${contractPath} absent — CI must check out ../suspec for PG-005 to bite`
+            `[no-op] drift guard SKIPPED: no sibling suspec canon found (SUSPEC_CANON / ../suspec / canon-shaped sibling) — provide one for PG-005 to bite`
         );
     }
     const guardName = present
         ? 'pins the same version and core-check table'
-        : 'pins the same version and core-check table (SKIPPED: sibling ../suspec absent)';
+        : 'pins the same version and core-check table (SKIPPED: no sibling suspec canon)';
 
     (present ? it : it.skip)(guardName, () => {
         const text = readFileSync(contractPath, 'utf8');

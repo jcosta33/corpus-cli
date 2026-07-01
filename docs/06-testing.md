@@ -54,8 +54,8 @@ src/modules/Workspace/
 ├── useCases/
 │   ├── __tests__/
 │   │   └── git.spec.ts
-│   └── git.ts
-└── index.ts
+│   ├── git.ts
+│   └── index.ts
 ```
 
 ---
