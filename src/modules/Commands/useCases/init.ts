@@ -22,7 +22,7 @@ const DEFAULT_KIT = 'https://github.com/jcosta33/suspec-starter-kit';
 export type KitSource = Readonly<{ sourceDir: string; cleanup: () => void }>;
 
 // A kit source must not be flag-shaped or a transport-scheme URL: git's `ext::`/`fd::`/`ssh+ext::`
-// transports can execute arbitrary commands, and a leading `-` is parsed as a clone option (suspec-works #22).
+// transports can execute arbitrary commands, and a leading `-` is parsed as a clone option (private workspace #22).
 // Mirrors the is_safe_base guard for the same family; DEFAULT_KIT (https) and normal URLs pass.
 function is_safe_clone_source(url: string): boolean {
     return !url.startsWith('-') && !/^(?:ext|fd|ssh\+ext)::/i.test(url);

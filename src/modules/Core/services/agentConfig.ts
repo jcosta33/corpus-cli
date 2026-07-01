@@ -2,7 +2,7 @@
 // adapter a launch should use. PURE (text in, records out) — the file read lives in the use-case.
 //
 // No YAML dependency: like the rest of suspec-cli (frontmatter is hand-scanned in taskLocator), this
-// reads exactly the documented two-level `agents:` shape (future-cli.md "Agent adapters") — a top-level
+// reads exactly the documented two-level `agents:` shape (`docs/reference/cli.md` "Agent adapters") — a top-level
 // `agents:` mapping whose children are `default: <name>`, an `available:` list (informational, ignored
 // here), and one mapping per adapter carrying `command` / `working_directory` / `startup_instruction`.
 // It is not a general YAML parser; an exotic file is read as best-effort and a missing field surfaces

@@ -38,7 +38,7 @@ Commands     the thin direct-command wrappers
 Tui          the interactive flows + renderers (over an injected Prompter)
 ```
 
-(*Two-tier* spec form: a spec is a header tier of frontmatter + prose and a body tier of
+(_Two-tier_ spec form: a spec is a header tier of frontmatter + prose and a body tier of
 requirements; Sol parses that plain Markdown shape.)
 
 ---
@@ -49,12 +49,12 @@ A TypeScript module is composed of a **public contract surface** and **private i
 
 ### 2.1 Public contract surface
 
-Each module exposes independently-importable contract surfaces, typically through `index.ts`.
+Each module exposes independently-importable contract surfaces, typically through `useCases/index.ts`.
 
-| Contract folder      | Role                              | Import target                                                                           |
-| -------------------- | --------------------------------- | --------------------------------------------------------------------------------------- |
-| `useCases/`          | public write boundary (functions) | `#/modules/<M>/useCases` — `export { fn }` only, **no** `export type` from `useCases/`. |
-| `events/` (optional) | domain event payload types        | `#/modules/<M>/events` — `export type` / values as needed                               |
+| Contract folder      | Role                              | Import target                                                                                                                                           |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useCases/`          | public write boundary (functions) | Relative path to `src/modules/<M>/useCases/index.ts` from the caller, with explicit `.ts`; `export { fn }` only, **no** `export type` from `useCases/`. |
+| `events/` (optional) | domain event payload types        | Relative path to the event surface from the caller, with explicit `.ts`; `export type` / values as needed.                                              |
 
 > `events/` is the convention for a module that needs to publish event payload types; the reconcile-only harness has no event bus, so no module currently populates one.
 

@@ -32,7 +32,7 @@ node_modules
 # Coverage
 coverage
 # --- Suspec (code-repo footprint) ---
-# The Suspec workspace governing this repo is the sibling suspec-hq repo; only
+# The Suspec workspace governing this repo is the private family workspace; only
 # code-repo scratch is ignored here (the kit's .gitignore.additions).
 .agents/tmp/
 tmp/

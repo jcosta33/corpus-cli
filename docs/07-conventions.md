@@ -4,7 +4,7 @@ This guide defines coding conventions and patterns for clarity, consistency, and
 
 ## TypeScript soundness
 
-Agent-enforced rules for typing and tests — no `any` escapes, lazy assertions, or suppression comments without justification — are **canonical in `.agents/repo-conventions.md`** under *TypeScript conventions* (the **Soundness** bullet). Follow that section for implementation; this document does not repeat it.
+Agent-enforced rules for typing and tests — no `any` escapes, lazy assertions, or suppression comments without justification — are **canonical in `.agents/repo-conventions.md`** under _TypeScript conventions_ (the **Soundness** bullet). Follow that section for implementation; this document does not repeat it.
 
 ## Control flow
 
@@ -45,7 +45,10 @@ Separate pure business logic from CLI presentation concerns.
 ```typescript
 // ✅ Good: Pure function + thin CLI wrapper
 export const computeSlug = (title: string): string => {
-    return title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    return title
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
 };
 
 // In the command handler:
@@ -55,7 +58,7 @@ console.log(`Created sandbox: ${slug}`);
 
 ## Naming conventions
 
-Canonical in `.agents/repo-conventions.md` (*TypeScript conventions*); the worked examples below are
+Canonical in `.agents/repo-conventions.md` (_TypeScript conventions_); the worked examples below are
 the human-facing illustration of those rules.
 
 ### File names
@@ -112,8 +115,8 @@ export type WorkspaceConfig = {
 
 ## Import patterns
 
-Module-boundary rules are canonical in `.agents/repo-conventions.md` (*Module architecture* +
-*TypeScript conventions*); the examples below illustrate them.
+Module-boundary rules are canonical in `.agents/repo-conventions.md` (_Module architecture_ +
+_TypeScript conventions_); the examples below illustrate them.
 
 ```typescript
 // ✅ Good: Import specific types / methods
@@ -164,7 +167,7 @@ export default format_time;
 
 ### Import paths
 
-- Cross-module imports use **relative paths to the module's root `index.ts`** with an explicit `.ts`
+- Cross-module imports use **relative paths to the module's root `useCases/index.ts`** with an explicit `.ts`
   extension (NodeNext resolution) — e.g. `import { resolve_repo_root } from '../../Workspace/useCases/index.ts';`.
   Within a module, use relative paths (`../services/…`, `./useCases/…`); never import your own root barrel.
 - The `#/` alias is reserved for `src/infra` and is not used by module code today. No `src/` file imports
@@ -172,7 +175,7 @@ export default format_time;
 
 ## Function patterns
 
-Canonical in `.agents/repo-conventions.md` (*TypeScript conventions*: single-object param,
+Canonical in `.agents/repo-conventions.md` (_TypeScript conventions_: single-object param,
 `FunctionNameInput`/`FunctionNameOutput`); the examples below illustrate them.
 
 ### Function declarations
@@ -208,7 +211,12 @@ export const updateWorkspace = ({ workspaceId, isVisible, notifyUser, updateMeta
 };
 
 // ❌ Bad: Multiple boolean parameters - unclear what each does
-export const updateWorkspace = (workspaceId: string, isVisible: boolean, notify: boolean, updateMeta: boolean): void => {
+export const updateWorkspace = (
+    workspaceId: string,
+    isVisible: boolean,
+    notify: boolean,
+    updateMeta: boolean
+): void => {
     // Implementation
 };
 
@@ -291,4 +299,4 @@ function greet(name = 'world') {}
 - **Curly braces**: Required for all conditionals and loops. ([`curly`](https://eslint.org/docs/latest/rules/curly))
 - **TypeScript**: Use `import { type MyType }`. ([`@typescript-eslint/consistent-type-imports`](https://typescript-eslint.io/rules/consistent-type-imports))
 - **Promises**: Always handle promises (`return`/`catch`/`await`). Avoid floating promises.
-- **Imports**: Enforce group order and alphabetical sort. ([`import/order`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/order.md))
+- **Imports**: Keep group order and alphabetical sort by convention. The current ESLint stack does not install `eslint-plugin-import`, so this is reviewed by humans and ordinary code review rather than `import/order`.

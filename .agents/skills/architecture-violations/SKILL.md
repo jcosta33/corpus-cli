@@ -11,7 +11,7 @@ It applies to both AI agents and human maintainers.
 
 This is not another architecture overview. It is a guardrail document for preventing architectural drift, shortcut-driven refactors, validator gaming, and code that "passes the rules" without preserving the meaning of the rules.
 
-**Canonical module-boundary reference:** `AGENTS.md` § Frontend Domain-Driven Architecture.
+**Canonical module-boundary reference:** `AGENTS.md` § Architecture discipline and `docs/05-architecture.md`.
 
 ---
 
@@ -174,10 +174,10 @@ If you cannot complete the refactor in the current session, leave the annotation
 
 ## 5. Module Boundaries
 
-Each module exposes its public API through a root `index.ts`. Other modules import only from this root.
+Each module exposes its public API through a root `useCases/index.ts` barrel. Other modules import only from this root.
 
 ```text
-src/modules/ModuleName/index.ts          ← public contract
+src/modules/ModuleName/useCases/index.ts ← public contract
 src/modules/ModuleName/useCases/         ← public functions
 src/modules/ModuleName/models/           ← private
 ```
@@ -185,53 +185,53 @@ src/modules/ModuleName/models/           ← private
 ### Importing cross-module
 
 ```ts
-// CORRECT — import from module root
-import { getWorkspace } from '#/modules/Workspace';
+// CORRECT — import from the module root barrel
+import { getWorkspace } from '../../Workspace/useCases/index.ts';
 
 // FORBIDDEN — direct file access from outside the module
-import { getWorkspace } from '#/modules/Workspace/useCases/git';
+import { getWorkspace } from '../../Workspace/useCases/git.ts';
 ```
 
 ### Importing inside the same module (never own barrel)
 
-Files under `src/modules/<Name>/` must **not** import from `#/modules/<Name>`. Use **relative** paths.
+Files under `src/modules/<Name>/` must **not** import from their own module root barrel. Use **relative** paths.
 
 ```ts
 // CORRECT — Workspace file importing Workspace internals
 import { parseGitOutput } from '../useCases/git';
 
 // FORBIDDEN — same module importing its own barrel
-import { parseGitOutput } from '#/modules/Workspace';
+import { parseGitOutput } from '../useCases/index.ts';
 ```
 
 ### Writing a module root barrel
 
 ```ts
-// src/modules/Workspace/index.ts — curated public surface
-export { getWorkspace } from './useCases/getWorkspace';
-export { createWorkspace } from './useCases/createWorkspace';
+// src/modules/Workspace/useCases/index.ts — curated public surface
+export { getWorkspace } from './getWorkspace.ts';
+export { createWorkspace } from './createWorkspace.ts';
 
-// FORBIDDEN inside index.ts:
-export type { InternalDto } from './useCases/getWorkspace';  // use-case types do not cross modules
-export { WorkspaceModel } from './models/Workspace';          // models/ is private
+// FORBIDDEN inside useCases/index.ts:
+export type { InternalDto } from './getWorkspace.ts'; // use-case types do not cross modules
+export { WorkspaceModel } from '../models/Workspace.ts'; // models/ is private
 ```
 
 ---
 
 ## 6. Use cases — behavior crosses modules; types stay local
 
-A use case is the **callable** cross-module contract. Other modules import **functions** from `#/modules/<Module>` — not types defined in that module's `useCases/`. Each consumer module keeps its own types (or uses `ReturnType<typeof fn>` / `Parameters<typeof fn>`).
+A use case is the **callable** cross-module contract. Other modules import **functions** from the module root barrel — not types defined in that module's `useCases/`. Each consumer module keeps its own types (or uses `ReturnType<typeof fn>` / `Parameters<typeof fn>`).
 
 ### 6.1 What a legitimate use case looks like
 
 Every use case file must export its own typed function:
 
 - The file exports a named function (or arrow) written by the module that owns the use case.
-- **Types** used in the signature (`input`, return DTOs, etc.) are **internal** to the module — they are not re-exported from `index.ts` and are not imported by other modules via `import type` from `#/modules/...`.
+- **Types** used in the signature (`input`, return DTOs, etc.) are **internal** to the module — they are not re-exported from `useCases/index.ts` and are not imported by other modules from another module's use-case barrel.
 - The input and output types may use this module's `models/` or inline types in the file.
 - The function body may be thin. `return someHelper.method(input)` is acceptable — a use case is allowed to delegate to a private helper.
-- **Within the same module**, callers use **relative** paths to the file that defines the symbol (`./useCases/<file>`, `../models/…`, etc.). They must **not** import from `#/modules/<ThisModule>`.
-- **From another module**, callers import **values** from `#/modules/<Module>` only (`export { fn }` on `index.ts`).
+- **Within the same module**, callers use **relative** paths to the file that defines the symbol (`./useCases/<file>`, `../models/…`, etc.). They must **not** import from their own module root barrel.
+- **From another module**, callers import **values** from the destination module root barrel only (`export { fn }` on `useCases/index.ts`).
 
 ```ts
 // Workspace/useCases/getNextId.ts — legitimate thin use case
@@ -250,17 +250,17 @@ The helper is free to change its internal implementation; the use case absorbs t
 
 ```ts
 // FORBIDDEN — bypasses the module boundary (direct file access)
-import { getWorkspace } from '#/modules/Workspace/useCases/git';
+import { getWorkspace } from '../../Workspace/useCases/git.ts';
 
 // CORRECT — goes through the module root
-import { getWorkspace } from '#/modules/Workspace';
+import { getWorkspace } from '../../Workspace/useCases/index.ts';
 ```
 
 **Importing use-case types from another module:**
 
 ```ts
 // FORBIDDEN — types defined in useCases/ are not a cross-module surface
-import type { WorkspaceSummary } from '#/modules/Workspace/useCases';
+import type { WorkspaceSummary } from '../../Workspace/useCases/index.ts';
 
 // Prefer: local shape, or ReturnType<typeof getWorkspaceSummary> after importing the function
 ```
@@ -291,10 +291,10 @@ If there is nothing to add to a use-case body, define a proper typed function th
 
 ### 6.3 Internal DTOs when the helper shape is not safe to leak
 
-If the helper returns a framework-coupled object or internal entity shape, the use case defines **internal** types to map or narrow — those types stay in the module (not on `index.ts`):
+If the helper returns a framework-coupled object or internal entity shape, the use case defines **internal** types to map or narrow — those types stay in the module (not on `useCases/index.ts`):
 
 ```ts
-// Internal to the module — not exported from index.ts for other modules
+// Internal to the module — not exported from useCases/index.ts for other modules
 type WorkspaceSummary = { id: string; name: string; status: string };
 
 export function getWorkspaceSummary(input: { workspaceId: string }): WorkspaceSummary | null {
@@ -328,7 +328,7 @@ Before committing a use-case file, ask:
 
 1. Does this file export its own typed function, not a re-export?
 2. If the signature uses helper types, are those types pure models and only referenced **inside this module**?
-3. Are we avoiding `export type` of use-case types on `index.ts` and avoiding cross-module `import type` of those types?
+3. Are we avoiding `export type` of use-case types on `useCases/index.ts` and avoiding cross-module `import type` of those types?
 
 If any answer is no, the boundary is fake or the type surface is too wide.
 
@@ -339,7 +339,7 @@ If any answer is no, the boundary is fake or the type surface is too wide.
 Before committing architecture work, verify:
 
 1. Does the change improve or preserve ownership clarity?
-2. Are cross-module imports going through module root `index.ts` only?
+2. Are cross-module imports going through module root `useCases/index.ts` only?
 3. Are same-module imports using relative paths?
 4. Does every use case export its own typed function?
 5. Are we avoiding fake boundaries and pass-through re-exports?

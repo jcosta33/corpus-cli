@@ -48,14 +48,6 @@ describe('parse_agent_def', () => {
         expect(def?.description).toBe('');
     });
 
-    it('reads an optional `status` field (default empty), incl. `status: retired`', () => {
-        expect(parse_agent_def(AGENT)?.status).toBe(''); // no status key → empty
-        const retired = parse_agent_def('---\nname: x\nstatus: retired\n---\nbody\n');
-        expect(retired?.status).toBe('retired');
-        const active = parse_agent_def('---\nname: x\nstatus: active\n---\nbody\n');
-        expect(active?.status).toBe('active');
-    });
-
     it('tolerates a leading UTF-8 BOM before the frontmatter fence', () => {
         const def = parse_agent_def('\uFEFF---\nname: x\ndescription: d\n---\nbody\n');
         expect(def?.name).toBe('x');
@@ -90,13 +82,15 @@ describe('render_codex_agent', () => {
         expect(toml).not.toContain('ADR-0098');
         // the honest scope: tool-scoping is named as Claude-Code-only and NOT travelling
         expect(toml).toContain('Tool-scoping');
-        expect(toml).toContain('Source tools (Claude-Code-enforced, NOT enforced here): Read, Grep, Glob, Bash');
+        expect(toml).toContain(
+            'Source tool constraints from Claude Code; not portable to this generated adapter: Read, Grep, Glob, Bash'
+        );
         // the body lands inside the multiline string
         expect(toml).toContain('Re-run the checks yourself. Never issue the result.');
     });
 
     it('a def with no tools states that, rather than an empty allowlist', () => {
-        const toml = render_codex_agent({ name: 'x', description: 'd', tools: '', status: '', body: 'b' });
+        const toml = render_codex_agent({ name: 'x', description: 'd', tools: '', body: 'b' });
         expect(toml).toContain('Source declares no tool allowlist.');
     });
 
@@ -105,7 +99,6 @@ describe('render_codex_agent', () => {
             name: 'x',
             description: 'd',
             tools: 'Read',
-            status: '',
             body: 'has "quotes" and \\ backslash and """ triple',
         });
         // the dangerous sequences are escaped so the multiline string never closes early
@@ -119,7 +112,6 @@ describe('render_codex_agent', () => {
             name: 'x',
             description: 'd',
             tools: 'Read',
-            status: '',
             body: 'line one\nlast line',
         });
         // the closing `"""` follows the last body char directly (no `\n` inserted), so the parsed value

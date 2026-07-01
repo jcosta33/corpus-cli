@@ -105,7 +105,7 @@ export type ReviewReport = Readonly<{
     // stats were available (a fixture reconcile). NEUTRAL INFO the reviewer judges — never a finding;
     // the band-based oversized-packet check is specified-not-shipped (ADR-0097, measured FP).
     packetSize: PacketSizeFacts | null;
-    // Spec-coverage drift (suspec-works#72 item 2; suspec-cli#1): the source spec's requirement ids the
+    // Spec-coverage drift (private workspace #72 item 2; suspec-cli#1): the source spec's requirement ids the
     // task `scope` does not track — "the spec grew under the task". NEUTRAL INFO, not a finding: it does
     // NOT raise the advisory level (mirrors packetSize), and it is reconcile-only — no C-id, no
     // checks.yaml entry — until measured 0-FP and promoted (honesty framework, ADR-0063). null when the

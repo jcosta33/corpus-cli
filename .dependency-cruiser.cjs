@@ -1,7 +1,7 @@
 /** @type {import('dependency-cruiser').IConfiguration} */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suspec CLI module architecture enforcement (ADR-0077 reconcile-only harness)
+// Suspec CLI module architecture enforcement
 //
 // Module layout (one folder per bounded context under src/modules):
 //   src/modules/Core/       — the four reconcile-only engines + the unixOutcome contract
@@ -58,7 +58,7 @@ module.exports = {
             to: { path: '^src/modules/' },
         },
 
-        // ── Cross-module discipline (AGENTS.md § Frontend Domain-Driven) ────
+        // ── Cross-module discipline (AGENTS.md architecture discipline) ────
         {
             name: 'no-cross-module-deep-import',
             severity: 'error',

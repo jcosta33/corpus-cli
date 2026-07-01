@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -14,16 +14,11 @@ function agentDef(name: string, tools: string): string {
     return `---\nname: ${name}\ndescription: >-\n  Do the ${name} job, read-only.\ntools: ${tools}\n---\n\n# ${name}\n\nBody of ${name}.\n`;
 }
 
-// A retired redirect stub: same shape, plus `status: retired` in the frontmatter.
-function retiredAgentDef(name: string, tools: string): string {
-    return `---\nname: ${name}\nstatus: retired\ndescription: >-\n  Retired — do NOT install ${name}.\ntools: ${tools}\n---\n\n# ${name}\n\nThis stub only redirects inbound refs.\n`;
-}
-
 beforeEach(() => {
     src = mkdtempSync(join(tmpdir(), 'suspec-agents-src-'));
     target = mkdtempSync(join(tmpdir(), 'suspec-agents-tgt-'));
     writeFileSync(join(src, 'suspec-reviewer.md'), agentDef('suspec-reviewer', 'Read, Grep, Glob, Bash'));
-    writeFileSync(join(src, 'suspec-explorer.md'), agentDef('suspec-explorer', 'Read, Grep, Glob'));
+    writeFileSync(join(src, 'suspec-auditor.md'), agentDef('suspec-auditor', 'Read, Grep, Glob'));
     writeFileSync(join(src, 'README.md'), '# the catalog readme — NOT an agent def\n'); // must be ignored
     writeFileSync(join(src, 'notes.md'), '# a stray doc with no frontmatter\n'); // not a def → skipped
 });
@@ -35,7 +30,7 @@ afterEach(() => {
 describe('emit_agents (suspec agents emit --codex, ADR-0098)', () => {
     it('emits one .codex/agents/<name>.toml per agent def, ignoring README + non-defs', () => {
         const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
-        expect(report.written.sort()).toEqual(['suspec-explorer.toml', 'suspec-reviewer.toml']);
+        expect(report.written.sort()).toEqual(['suspec-auditor.toml', 'suspec-reviewer.toml']);
         expect(report.level).toBe('clean');
         const toml = readFileSync(join(target, '.codex', 'agents', 'suspec-reviewer.toml'), 'utf8');
         expect(toml).toContain('developer_instructions = """');
@@ -74,31 +69,9 @@ describe('emit_agents (suspec agents emit --codex, ADR-0098)', () => {
         }
     });
 
-    it('SKIPS a `status: retired` redirect stub (no .toml), logging the intentional drop; others still emit', () => {
-        // the retired stub mirrors suspec-evidence-checker: kept for inbound-ref resolution, must NOT
-        // be projected into Codex as an installable agent (its own body says "do not install").
-        writeFileSync(join(src, 'suspec-evidence-checker.md'), retiredAgentDef('suspec-evidence-checker', 'Read, Bash'));
-        const logSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        try {
-            const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
-            // the two normal agents still emit; the retired stub does not appear in `written`
-            expect(report.written.sort()).toEqual(['suspec-explorer.toml', 'suspec-reviewer.toml']);
-            expect(report.retired).toEqual(['suspec-evidence-checker.toml']);
-            // NO toml on disk for the retired stub; the normal one is present
-            expect(existsSync(join(target, '.codex', 'agents', 'suspec-evidence-checker.toml'))).toBe(false);
-            expect(existsSync(join(target, '.codex', 'agents', 'suspec-reviewer.toml'))).toBe(true);
-            // the intentional skip is logged (unlike the quiet non-def skip)
-            expect(logSpy).toHaveBeenCalledWith('skipped suspec-evidence-checker (status: retired)');
-        } finally {
-            logSpy.mockRestore();
-        }
-    });
-
-    it('a normal agent (no status) emits as before — proven against the retired path', () => {
-        // suspec-reviewer carries no `status:` → still projected to an installable toml
+    it('a normal agent definition emits to an installable toml', () => {
         const report = assertOk(emit_agents({ sourceDir: src, targetDir: target, overwrite: false }));
         expect(report.written).toContain('suspec-reviewer.toml');
-        expect(report.retired).toEqual([]);
         expect(existsSync(join(target, '.codex', 'agents', 'suspec-reviewer.toml'))).toBe(true);
     });
 });

@@ -6,8 +6,8 @@ TypeScript tests use **Vitest** and live under **`__tests__/`** folders. This do
 
 ## 1. Philosophy
 
-- **Shallow unit tests only.** Every test exercises one function, one class, or one module in isolation. Every dependency that crosses a module boundary or touches the OS is mocked at the import boundary.
-- **No integration tests. No E2E.** Not yet. Adding cross-module or end-to-end tests before the unit layer is populated is premature.
+- **Default to focused unit tests.** Most tests exercise one function, one class, or one module in isolation. Dependencies that cross a module boundary or touch the OS are mocked when the behavior under test does not require the real boundary.
+- **Use focused integration-style tests for boundary truth.** Real git worktrees, temp filesystem state, dispatcher routing, and generated artifact contracts may be exercised directly when mocking them would hide the behavior Suspec relies on. Broad browser/E2E or network-dependent tests are still out of scope.
 - **One test file per source file.** The spec lives in **`__tests__/`** inside the same folder as the source file — e.g. `useCases/git.ts` → `useCases/__tests__/git.spec.ts`. Do **not** place `*.spec.ts` beside production files. If a source file is hard to unit-test, that is a signal about the source file, not the tests.
 - **Mock surface dependencies, not internals.** When testing a use case, mock the utilities or Node APIs it calls. When testing a pure helper, mock nothing.
 - **Real domain types in tests.** Construct real values where possible. Faking them hides bugs.
@@ -26,9 +26,9 @@ TypeScript tests use **Vitest** and live under **`__tests__/`** folders. This do
 
 **Do not test (yet):**
 
-- Real subprocess round-trips
-- Real filesystem I/O
-- Cross-module flows end-to-end
+- Broad subprocess round-trips that only prove the shell can launch
+- Filesystem I/O that is incidental to the behavior under test
+- Broad cross-module flows that are better covered by focused unit tests plus a narrow boundary test
 - External API calls
 
 ---
@@ -167,11 +167,11 @@ Use `beforeEach(() => { vi.resetAllMocks(); })` when mocks are shared across tes
 
 ## 7. Running tests
 
-| Command              | Purpose                                       |
-| -------------------- | --------------------------------------------- |
-| `pnpm test`          | Vitest in watch mode — use during development |
-| `pnpm test:run`      | Vitest single run — use in CI                 |
-| `pnpm test:coverage` | Vitest with **v8** coverage; HTML + `lcov`    |
+| Command         | Purpose                                       |
+| --------------- | --------------------------------------------- |
+| `pnpm test`     | Vitest in watch mode — use during development |
+| `pnpm test:run` | Vitest single run — use in CI                 |
+| `pnpm coverage` | Vitest with **v8** coverage; HTML + `lcov`    |
 
 Vitest config is in `vitest.config.ts`. Global setup is `src/setupTests.ts` if present.
 
@@ -181,7 +181,7 @@ Vitest config is in `vitest.config.ts`. Global setup is `src/setupTests.ts` if p
 
 Do not:
 
-- **Write integration tests yet.** If a test can only be written by wiring up two modules' real code, delete it and write the unit tests for each module separately.
+- **Write broad integration tests by default.** If a test wires up multiple modules without proving a boundary contract, split it into unit tests plus a narrow boundary test.
 - **Mock event payloads or error values.** They are cheap plain objects. Construct them for real.
 - **Depend on real time.** No `setTimeout` in tests, no real `Date.now()` assertions. Use fake timers (`vi.useFakeTimers()`) or explicit values.
 - **Share mutable state between tests.** Every test sets up its own dummies, its own mocks.

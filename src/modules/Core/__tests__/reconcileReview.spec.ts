@@ -220,7 +220,7 @@ describe('reconcile_review — coverage (AC-019)', () => {
     });
 });
 
-describe('reconcile_review — spec-coverage drift (suspec-works#72 item 2; suspec-cli#1)', () => {
+describe('reconcile_review — spec-coverage drift (private workspace #72 item 2; suspec-cli#1)', () => {
     it('surfaces the spec ids the task scope does not track — NEUTRAL, never raises the level', () => {
         const report = ok({
             // task scopes only AC-001; the spec has grown to AC-001..003 under it

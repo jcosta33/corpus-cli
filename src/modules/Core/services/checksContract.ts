@@ -399,7 +399,7 @@ export function check_coverage(input: CoverageInput): Diagnostic[] {
     return coverage_facts(input).map((finding) => diagnostic('C012', coverage_message(finding), null));
 }
 
-// --- spec-coverage drift (suspec-works#72 item 2; suspec-cli#1) -----------------------------------
+// --- spec-coverage drift (private workspace #72 item 2; suspec-cli#1) ------------------------------
 // Advisory, NOT a contract check: no C-id, no `checks.yaml` entry, no contract-version bump — it
 // surfaces a neutral reconcile fact, reconcile-only until measured 0-FP on the real suspec and only
 // then promoted to a check (honesty framework, ADR-0063; matches the packet-size neutral-info posture).
@@ -498,7 +498,7 @@ export type VerifyBindingFinding = Readonly<{
 // Collapse whitespace, then strip a trailing note (a `(parenthetical)` OR an em/en-dash clause) and
 // surrounding backticks — the canon's own `Verify with:` format wraps the command in backticks and may
 // carry a trailing note (docs/04, the examples), while the review block records it bare; both sides MUST
-// normalize identically or a conformant block false-fires a cmd-mismatch (suspec-works #16). The note is
+// normalize identically or a conformant block false-fires a cmd-mismatch (private workspace #16). The note is
 // stripped before the backticks so the documented ``cmd`` (note) / ``cmd`` — note forms reduce cleanly to
 // the bare command. The dash form keys on an EM/EN dash (—/–), never the ASCII hyphen, so a real flag
 // like `npm test -- a.spec.ts` is never truncated (R4-ISS-11).

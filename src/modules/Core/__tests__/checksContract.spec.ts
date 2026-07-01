@@ -237,7 +237,7 @@ describe('C012 coverage (ADR-0079)', () => {
     });
 });
 
-describe('spec_coverage_drift (suspec-works#72 item 2; suspec-cli#1)', () => {
+describe('spec_coverage_drift (private workspace #72 item 2; suspec-cli#1)', () => {
     it('reports spec ids no task scope tracks as untracked', () => {
         expect(
             spec_coverage_drift_facts({
@@ -291,7 +291,7 @@ describe('spec_coverage_drift (suspec-works#72 item 2; suspec-cli#1)', () => {
     });
 });
 
-describe('normalize_cmd (ADR-0083 / suspec-works #16)', () => {
+describe('normalize_cmd (ADR-0083 / private workspace #16)', () => {
     const bare = 'npm test -- auth-refresh.spec.ts';
     it('reduces the canon Verify-with forms (backtick-wrapped, trailing note, extra whitespace) to the same bare command', () => {
         expect(normalize_cmd(`\`${bare}\``)).toBe(bare);
@@ -346,7 +346,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (suspec-works #16)', () => {
+    it('a backtick-wrapped named command (the canon Verify-with format) matches a bare block — no false cmd-mismatch (private workspace #16)', () => {
         expect(
             verify_binding_facts(
                 base({
@@ -359,7 +359,7 @@ describe('C013 verify-evidence-binding (ADR-0083, AC-005)', () => {
         ).toEqual([]);
     });
 
-    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (suspec-works #16)', () => {
+    it('a named command with a trailing (parenthetical) note matches a bare block — no false cmd-mismatch (private workspace #16)', () => {
         expect(
             verify_binding_facts(
                 base({

@@ -22,4 +22,4 @@ agent-facing rules are not in this `docs/` tree — they live in the live Suspec
 - ➡️ **[`AGENTS.md`](../AGENTS.md)** — the always-loaded bootloader (startup, project facts, command bindings).
 - ➡️ **[`.claude/skills/`](../.claude/skills/)** — the `implement-task` guide plus this repo's engineering skills, each carrying its procedure inline.
 - ➡️ **The kit** — [suspec-starter-kit](https://github.com/jcosta33/suspec-starter-kit), which `suspec init` clones (its `advanced/` carries the SOL + checks reference cards).
-- ➡️ **Toolchain specs** — in the Suspec workspace (the sibling `suspec-works` repo, `specs/`).
+- ➡️ **Toolchain specs** — in the private family workspace (`specs/`).

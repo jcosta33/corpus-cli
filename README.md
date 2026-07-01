@@ -3,8 +3,8 @@
 The reference CLI for the [Suspec framework](https://github.com/jcosta33/suspec) — a **reconcile-only
 harness** for spec-driven agent work. It implements the checks contract in
 [`suspec/checks/checks.yaml`](https://github.com/jcosta33/suspec/blob/main/checks/checks.yaml); its own
-specs and reviews live in the family workspace, [suspec-works](https://github.com/jcosta33/suspec-works)
-(the design of record is `suspec/docs/adrs/0077`).
+specs and reviews live in the private family workspace
+that governs this code repo.
 
 suspec-cli **prepares, checks, and reconciles** the work around the Suspec loop — it never runs the
 model loop itself. Every command is a **direct, scriptable command**; most also have a **beautiful
@@ -60,23 +60,23 @@ Every command has a direct form; the reconcile-loop flows also have an interacti
 
 ## Commands
 
-| Command                                         | What it does                                                                                     |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `suspec init [dir]`                             | Scaffold a workspace from the suspec-starter-kit, conflict-safe                                  |
-| `suspec update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely      |
+| Command                                         | What it does                                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `suspec init [dir]`                             | Scaffold a workspace from the suspec-starter-kit, conflict-safe                                                                                         |
+| `suspec update [--check\|--write]`              | Check kit drift (read-only), or `--write` to refresh the kit-owned guidance conflict-safely                                                             |
 | `suspec check [file]`                           | Validate one artifact by its `type:` — spec, review, or change-plan (positional), or the whole-workspace verdict (no arg); `--staleness` for spec drift |
-| `suspec worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `suspec/<spec-slug>` branches                                  |
-| `suspec status`                                 | A read-only derived board over specs ← tasks ← reviews                                           |
-| `suspec clean`                                  | Prune spent ephemeral artifacts (tasks/reviews) — dry run, or `--apply`                          |
-| `suspec stamp <ref>`                            | Stamp staleness provenance — a spec `snapshot:`, or a review `evidence_hash:` + `reviewed_sha:`  |
-| `suspec review <task>`                          | Reconcile a finished run — diff vs self-report vs spec; the human owns the verdict               |
-| `suspec new <task\|spec\|change-plan>`          | Cut a task packet from a spec (scope never invented), or scaffold a spec / change-plan           |
-| `suspec pull <ref>`                             | Snapshot a ticket into `intake/` — verbatim, never a spec or the board                           |
-| `suspec promote <task>`                         | Scaffold a candidate finding from a finished task (no learning asserted)                         |
-| `suspec run <task> --agent <name>`              | Launch a prepared task on an external agent in its worktree; records the launch (no verdict)     |
-| `suspec show <task\|spec\|review\|checks>`      | Project a parsed artifact as JSON — read-only                                                    |
-| `suspec agents emit --codex`                    | Generate Codex `.codex/agents/*.toml` from the suspec-agents definitions (prose discipline only) |
-| `suspec help`                                   | This reference                                                                                   |
+| `suspec worktree <create\|list\|remove\|prune>` | Manage isolated task worktrees on `suspec/<spec-slug>` branches                                                                                         |
+| `suspec status`                                 | A read-only derived board over specs ← tasks ← reviews                                                                                                  |
+| `suspec clean`                                  | Prune spent ephemeral artifacts (tasks/reviews) — dry run, or `--apply`                                                                                 |
+| `suspec stamp <ref>`                            | Stamp staleness provenance — a spec `snapshot:`, or a review `evidence_hash:` + `reviewed_sha:`                                                         |
+| `suspec review <task>`                          | Reconcile a finished run — diff vs self-report vs spec; the human owns the verdict                                                                      |
+| `suspec new <task\|spec\|change-plan>`          | Cut a task packet from a spec (scope never invented), or scaffold a spec / change-plan                                                                  |
+| `suspec pull <ref>`                             | Snapshot a ticket into `intake/` — verbatim, never a spec or the board                                                                                  |
+| `suspec promote <task>`                         | Scaffold a candidate finding from a finished task (no learning asserted)                                                                                |
+| `suspec run <task> --agent <name>`              | Launch a prepared task on an external agent in its worktree; records the launch (no verdict)                                                            |
+| `suspec show <task\|spec\|review\|checks>`      | Project a parsed artifact as JSON — read-only                                                                                                           |
+| `suspec agents emit --codex`                    | Generate Codex `.codex/agents/*.toml` from the suspec-agents definitions (prose discipline only)                                                        |
+| `suspec help`                                   | This reference                                                                                                                                          |
 
 The table is the full reference; the subsections below expand only the commands with non-obvious
 behaviour. Every command also documents itself via `suspec <cmd> --help`.
@@ -148,4 +148,4 @@ optionally `agents.default`); without it the command errors. This is separate fr
 
 - [`AGENTS.md`](./AGENTS.md) — the bootloader for agents working on this repo
 - [`.agents/repo-conventions.md`](./.agents/repo-conventions.md) — the module architecture + soundness rules
-- The Suspec framework: [suspec](https://github.com/jcosta33/suspec) · the kit: [suspec-starter-kit](https://github.com/jcosta33/suspec-starter-kit) · the workspace: [suspec-works](https://github.com/jcosta33/suspec-works)
+- The Suspec framework: [suspec](https://github.com/jcosta33/suspec) · the kit: [suspec-starter-kit](https://github.com/jcosta33/suspec-starter-kit)

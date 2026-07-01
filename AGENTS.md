@@ -2,19 +2,19 @@
 
 <!-- Always-loaded bootloader (aim ~100 lines). Procedures load on demand from
      `.agents/skills/`. This is a CODE repo: the Suspec workspace governing it
-     is the sibling suspec-works repo. -->
+     is the private family workspace. -->
 
 ## Suspec
 
-- Suspec workspace: `../suspec-works` — read the task packet you are given. Specs,
-  tasks, reviews, findings, decisions, and the board live there, not here.
+- Suspec workspace: read the task packet you are given. Specs, tasks, reviews,
+  findings, decisions, and the board live in the private family workspace, not here.
 - Implement against the packet: read its linked spec first; stay inside its
   scope (if a requirement can't be met as written, stop and say why instead of
   improvising); run every item under its `## Verify` and paste the real output
   (a claim without output counts as unverified); fill its `## Run summary`;
   re-read your own diff as a skeptic before handoff. Guide:
   `.agents/skills/implement-task/`.
-- suspec-cli is the **reconcile-only harness** (suspec ADR-0077): it prepares,
+- suspec-cli is the **reconcile-only harness**: it prepares,
   checks, and reconciles the Suspec loop and never runs the model loop. Surface:
   `init · update · check · worktree · status · clean · stamp · review · new · pull · promote · run · show · agents`
   (+ `help`) — each a direct command, most also an interactive TUI flow (`-i`;
@@ -33,7 +33,7 @@
   `Terminal` (arg parsing), `Commands` (the thin wrappers), `Tui` (the interactive flows and
   renderers). `src/infra` is the `Result`/`AppError` algebra.
 - **Architecture discipline:** DDD module boundaries — cross-module imports only via a
-  module's root `index.ts`; internals (`models/`/`repositories/`/`services/`) private;
+  module's root `useCases/index.ts`; internals (`models/`/`repositories/`/`services/`) private;
   one function per use-case/repository file; `src/infra/**` MUST NOT import
   `src/modules/**` (`infra-isolation`).
 - **The verification gate:** `pnpm deps:validate` (dependency-cruiser) MUST pass with

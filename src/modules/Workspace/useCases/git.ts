@@ -266,7 +266,7 @@ export type ChangedFilesError = AppError<'ChangedFilesFailed', { worktreePath: s
 // unusual byte) in double quotes with C-style escapes (`"src/my file.ts"`, `\t`, `\"`, `\\`, octal
 // `\NNN` for control bytes — non-ASCII is shown literally because both git calls pass
 // `core.quotePath=false`). `git diff --name-only` reports the same path unquoted, so without decoding the
-// two sources never reconcile and a spaced/non-ASCII path is dropped or double-counted (suspec-works #22). A
+// two sources never reconcile and a spaced/non-ASCII path is dropped or double-counted (private workspace #22). A
 // path that is not double-quoted is returned unchanged.
 function c_unquote(path: string): string {
     if (!(path.startsWith('"') && path.endsWith('"') && path.length >= 2)) {

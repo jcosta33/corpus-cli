@@ -30,7 +30,7 @@ another project; none of that applies (this repo is a TypeScript CLI, no UI, no 
 > As the repo migrates to the `packages/{core,cli,tui,…}` monorepo, the _discipline_ above carries
 > forward to each package; only the concrete module names change.
 
-## The reconcile-only boundary (ADR-0077)
+## The reconcile-only boundary
 
 suspec-cli prepares, checks, and reconciles the Suspec loop — it **never runs the model/agent loop**,
 owns no chat UI, and issues no review verdict. The logic lives in `src/modules/Core` (the four
